@@ -1,0 +1,31 @@
+// lmsr-fe M0: WAD (1e18) fixed-point core for an LMSR prediction-market maker.
+// Built on std's 512-bit mul_div, so a*b never overflows before the division.
+
+use core::num::{mul_div, mul_div_ceil, isqrt}
+
+pub const WAD: u256 = 1_000_000_000_000_000_000
+
+/// a * b / WAD, rounded down (full 512-bit intermediate).
+pub fn wad_mul_down(_ a: u256, _ b: u256) -> u256 {
+    mul_div(a, b, WAD)
+}
+
+/// a * b / WAD, rounded up. Used where the market maker must never under-charge.
+pub fn wad_mul_up(_ a: u256, _ b: u256) -> u256 {
+    mul_div_ceil(a, b, WAD)
+}
+
+/// a * WAD / b, rounded down. Reverts if b == 0.
+pub fn wad_div_down(_ a: u256, _ b: u256) -> u256 {
+    mul_div(a, WAD, b)
+}
+
+/// a * WAD / b, rounded up. Reverts if b == 0.
+pub fn wad_div_up(_ a: u256, _ b: u256) -> u256 {
+    mul_div_ceil(a, WAD, b)
+}
+
+/// Square root of a WAD value, returned in WAD (floor).
+pub fn wad_sqrt(_ x: u256) -> u256 {
+    isqrt(mul_div(x, WAD, 1))
+}

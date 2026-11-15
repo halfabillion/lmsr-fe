@@ -1,0 +1,41 @@
+use ingot::{WAD, wad_mul_down, wad_mul_up, wad_div_down, wad_div_up, wad_sqrt}
+
+#[test]
+fn mul_rounding() {
+    assert!(wad_mul_down(WAD, WAD) == WAD)
+    assert!(wad_mul_down(3, 333_333_333_333_333_333) == 0)
+    assert!(wad_mul_up(3, 333_333_333_333_333_333) == 1)
+    assert!(
+        wad_mul_down(2_500_000_000_000_000_000, 4 * WAD) == 10 * WAD,
+    )
+}
+
+#[test]
+fn mul_no_intermediate_overflow() {
+    // a * b alone overflows u256; the 512-bit path still returns the exact result.
+    let big: u256 = u256::max() / 2
+    assert!(wad_mul_down(big, WAD) == big)
+    assert!(wad_div_down(big, WAD) == big)
+}
+
+#[test]
+fn div_rounding() {
+    assert!(wad_div_down(WAD, 3 * WAD) == 333_333_333_333_333_333)
+    assert!(wad_div_up(WAD, 3 * WAD) == 333_333_333_333_333_334)
+    assert!(
+        wad_div_down(10 * WAD, 4 * WAD) == 2_500_000_000_000_000_000,
+    )
+}
+
+#[test(should_revert)]
+fn div_by_zero_reverts() {
+    let _ = wad_div_down(1, 0)
+}
+
+#[test]
+fn sqrt_vectors() {
+    assert!(wad_sqrt(0) == 0)
+    assert!(wad_sqrt(WAD) == WAD)
+    assert!(wad_sqrt(4 * WAD) == 2 * WAD)
+    assert!(wad_sqrt(2 * WAD) == 1_414_213_562_373_095_048)
+}
