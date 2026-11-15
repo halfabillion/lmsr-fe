@@ -1,4 +1,4 @@
-use ingot::{WAD, wad_mul_down, wad_mul_up, wad_div_down, wad_div_up, wad_sqrt}
+use ingot::{WAD, wad_mul_down, wad_mul_up, wad_div_down, wad_div_up, wad_sqrt, exp_neg_wad, ln_wad, lmsr_cost, lmsr_price1, lmsr_buy1_cost, cost_err}
 
 #[test]
 fn mul_rounding() {
@@ -38,4 +38,72 @@ fn sqrt_vectors() {
     assert!(wad_sqrt(WAD) == WAD)
     assert!(wad_sqrt(4 * WAD) == 2 * WAD)
     assert!(wad_sqrt(2 * WAD) == 1_414_213_562_373_095_048)
+}
+
+// Reference values: Python decimal, 80-digit precision, floored to wei.
+fn near(_ got: u256, _ want: u256, _ tol: u256) -> bool {
+    if got >= want {
+        return got - want <= tol
+    }
+    want - got <= tol
+}
+
+#[test]
+fn exp_neg_vectors() {
+    assert!(exp_neg_wad(0) == WAD)
+    assert!(near(exp_neg_wad(100_000_000_000_000_000), 904_837_418_035_959_573, 4))
+    assert!(near(exp_neg_wad(500_000_000_000_000_000), 606_530_659_712_633_423, 4))
+    assert!(near(exp_neg_wad(WAD), 367_879_441_171_442_321, 4))
+    assert!(near(exp_neg_wad(2 * WAD), 135_335_283_236_612_691, 4))
+    assert!(near(exp_neg_wad(693_147_180_559_945_309), 500_000_000_000_000_000, 4))
+    assert!(near(exp_neg_wad(10 * WAD), 45_399_929_762_484, 4))
+    assert!(near(exp_neg_wad(40 * WAD), 4, 2))
+    assert!(exp_neg_wad(100 * WAD) == 0)
+}
+
+#[test]
+fn ln_vectors() {
+    assert!(ln_wad(WAD) == 0)
+    assert!(near(ln_wad(2 * WAD), 693_147_180_559_945_309, 1))
+    assert!(near(ln_wad(3 * WAD), 1_098_612_288_668_109_691, 1))
+    assert!(near(ln_wad(1_500_000_000_000_000_000), 405_465_108_108_164_381, 1))
+    assert!(near(ln_wad(10 * WAD), 2_302_585_092_994_045_684, 1))
+    assert!(near(ln_wad(1_000_000_000_000 * WAD), 27_631_021_115_928_548_208, 1))
+}
+
+#[test(should_revert)]
+fn ln_below_one_reverts() {
+    let _ = ln_wad(WAD - 1)
+}
+
+#[test]
+fn lmsr_cost_vectors() {
+    let b: u256 = 100 * WAD
+    let tol: u256 = cost_err(b)
+    assert!(near(lmsr_cost(0, 0, b), 69_314_718_055_994_530_941, tol))
+    assert!(near(lmsr_cost(50 * WAD, 0, b), 97_407_698_418_010_668_087, tol))
+    assert!(near(lmsr_cost(0, 30 * WAD, b), 85_435_524_446_852_711_881, tol))
+    assert!(near(lmsr_cost(250 * WAD, 10 * WAD, b), 258_683_615_215_394_967_848, tol))
+}
+
+#[test]
+fn lmsr_prices() {
+    let b: u256 = 100 * WAD
+    assert!(lmsr_price1(0, 0, b) == WAD / 2)
+    // Prices of the two outcomes sum to 1 (within rounding).
+    let p1: u256 = lmsr_price1(50 * WAD, 0, b)
+    let p2: u256 = lmsr_price1(0, 50 * WAD, b)
+    assert!(near(p1 + p2, WAD, 2))
+    assert!(p1 > WAD / 2)
+}
+
+#[test]
+fn lmsr_buy_never_undercharges() {
+    let b: u256 = 100 * WAD
+    let exact: u256 = 5_124_947_951_362_558_541
+    let charged: u256 = lmsr_buy1_cost(0, 0, b, 10 * WAD)
+    assert!(charged >= exact + 1)
+    assert!(charged - exact <= 2 * cost_err(b))
+    // Buying more of an outcome is never cheaper.
+    assert!(lmsr_buy1_cost(10 * WAD, 0, b, 10 * WAD) > charged)
 }
