@@ -1,57 +1,46 @@
-# Project name
+# Submission notes (internal checklist; README.md is the jury-facing doc)
 
-<!-- Replace README.md with this file once you start your project, and fill in
-every section. The jury reads it first. -->
+Contest: Fe Builders Challenge. Registration was submitted on 15 Nov 2026; the
+project ID and private submission link will arrive by email at
+batchandledger@mail.grokbot.com. Submission closes **24 Nov 2026 23:59 UTC**.
+Submission form: https://docs.google.com/forms/d/e/1FAIpQLSd2pqUkJzFpZMu5FVQP-NtetrIoB6nI-pHG1MLTOQhCpsLKqg/viewform
+(use the personal link from the registration email).
 
-**Pitch:** One sentence that explains what your project does and why it matters.
+## Milestones
 
-## The problem
+- M0 (e6be06e): WAD core on std 512-bit mul_div; 5 tests.
+- M1 (c312ccc): exp_neg_wad / ln_wad, 2-outcome LMSR cost/price/buy; 11 tests.
+- M2 (f1e0d45, a6bf553, 66fd683 + docs): 2-outcome sell with maker-favour
+  rounding; N-outcome LMSR (log-sum-exp with max shift), Python-generated
+  vectors; `Market` contract (buy/sell/quote/price/resolve/redeem/sweep);
+  35 tests green; `fe build` OK.
+- M3 (to do): see below.
 
-What problem does the project solve, and for whom?
+## Checklist for the form
 
-## Approach
+- [ ] Public GitHub repo with OSI license (Apache-2.0 is in place). Not yet
+      published; needs Ali's OK and his GitHub account.
+- [ ] Full commit SHA to review: fill in after the final commit.
+- [x] `fe.toml` + exact Fe version: fe 26.5.0 (3dab95f).
+- [x] Reproducible build/test instructions and automated tests (README).
+- [x] README: problem, approach, architecture, limitations.
+- [x] One-sentence pitch + Fe highlight (README).
+- [ ] Demo: the CLI demo is in place (`fe test`); optionally add a short
+      recording.
+- [x] Declaration of pre-existing work, third-party code, AI assistance (README).
 
-How does the project solve it? What did you build during the contest?
+## M3 ideas (priority order)
 
-## Fe highlight
+1. Gas measurement for buy/sell at n = 2, 4, 8, plus cheap optimisations
+   (cache `exp` terms between the two cost evaluations).
+2. Property-style tests: many random books and amounts from
+   scripts/vectors.py, checking that buy >= exact and sell <= exact, and that
+   the contract balance stays >= max outstanding shares after random trade
+   sequences.
+3. Resolution timeout / cancel path (refund at last prices), so a missing
+   resolver can't lock funds.
+4. Optional ERC-20 collateral.
+5. Demo recording, then publish the repo and submit.
 
-One Fe-specific technical highlight, with a short code excerpt: a language
-feature, abstraction, or tool that made the difference.
-
-## Architecture
-
-How the code fits together: the main modules, contracts, or components, and
-how they interact.
-
-## Build and test
-
-```sh
-fe --version   # The exact Fe version you used, e.g. fe 26.5.0
-fe test
-fe build
-```
-
-List any other tools the project needs, and how to install them.
-
-## Demo
-
-A link to a video or screenshots, or a reproducible CLI example.
-
-## Limitations
-
-What works, what is unfinished, and known issues or security assumptions.
-
-## Declaration
-
-- **Pre-existing work:** What existed before November 3, 2026, and what you
-  added or changed during the contest. Link the starting commit if there is one.
-- **Third-party code:** Code you reused, with its source and license.
-- **AI assistance:** How you used AI tools, if at all.
-
-## Team
-
-Who built the project.
-
-## License
-
-The OSI-approved license of the project.
+Payout if placed: USDC on Ethereum to Ali's Phantom EVM address 0xd978…278A
+(the organisers request it by email after results).
