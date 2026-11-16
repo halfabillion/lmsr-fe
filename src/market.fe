@@ -355,7 +355,10 @@ pub contract Market uses (ctx: Ctx, call: mut Call, log: mut Log) {
         ) {
             assert!(!resolved, "market resolved")
             assert!(!cancelled, "already cancelled")
-            assert!(ctx.timestamp().as_seconds() >= deadline, "before deadline")
+            assert!(
+                ctx.timestamp().as_seconds() >= deadline,
+                "before deadline",
+            )
             let bal = ctx.selfbalance().as_wei()
             var pool = total_net
             if bal < pool { pool = bal }
@@ -404,7 +407,9 @@ pub contract Market uses (ctx: Ctx, call: mut Call, log: mut Log) {
             refund_base,
             claimed,
         ) {
-            if !cancelled || claimed.get(key: owner) { return 0 }
+            if !cancelled || claimed.get(key: owner) {
+                return 0
+            }
             let net = sat_sub(paid_in.get(key: owner), paid_out.get(key: owner))
             refund_amount(net, refund_pool, refund_base)
         }
