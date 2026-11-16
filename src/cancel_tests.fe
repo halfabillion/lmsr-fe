@@ -1,0 +1,275 @@
+// M3 cancel-path tests. The test EVM's clock is fixed (timestamp 1, block 0)
+// and cannot be advanced, so "after the deadline" is a market deployed with
+// resolve_by = 1 (already reached) and "before" one with a far-future value.
+//
+// Second and third traders are `Trader` proxy contracts, so the market sees
+// distinct callers; each proxy is funded with ETH at deploy.
+
+use ingot::market::{Market, MarketMsg}
+use ingot::{WAD, lmsr_max_loss}
+use std::evm::{ether, wei}
+
+const B: u256 = 10_000_000_000_000_000_000
+const FAR: u256 = 4_000_000_000
+const EXPIRED: u256 = 1
+const GAS: u256 = 3000000
+
+pub msg TraderMsg {
+    #[selector = sol("tBuy(address,uint256,uint256,uint256,address)")]
+    TBuy { m: Address, outcome: u256, amount: u256, pay: u256, refund_to: Address } -> u256,
+    #[selector = sol("tSell(address,uint256,uint256,address)")]
+    TSell { m: Address, outcome: u256, amount: u256, to: Address } -> u256,
+    #[selector = sol("tRefund(address,address)")]
+    TRefund { m: Address, to: Address } -> u256,
+    #[selector = sol("tCancel(address)")]
+    TCancel { m: Address } -> u256,
+}
+
+/// Test-only proxy trader: forwards trades to a market as its own caller.
+pub contract Trader uses (call: mut Call) {
+    #[payable]
+    init() {}
+
+    recv TraderMsg {
+        TBuy { m, outcome, amount, pay, refund_to } -> u256 uses (mut call) {
+            call.call(
+                addr: m,
+                gas: GAS,
+                value: wei(pay),
+                message: MarketMsg::Buy { outcome, amount, refund_to },
+            )
+        }
+        TSell { m, outcome, amount, to } -> u256 uses (mut call) {
+            call.call(
+                addr: m,
+                gas: GAS,
+                value: Wei::zero(),
+                message: MarketMsg::Sell { outcome, amount, to },
+            )
+        }
+        TRefund { m, to } -> u256 uses (mut call) {
+            call.call(addr: m, gas: GAS, value: Wei::zero(), message: MarketMsg::Refund { to })
+        }
+        TCancel { m } -> u256 uses (mut call) {
+            call.call(addr: m, gas: GAS, value: Wei::zero(), message: MarketMsg::Cancel {})
+        }
+    }
+}
+
+fn deploy_at(_ n: u256, _ resolve_by: u256) -> Address uses (evm: mut Evm) {
+    let subsidy = lmsr_max_loss(B, n as usize)
+    evm.create2<Market>(value: wei(subsidy), args: (B, n, resolve_by), salt: 0)
+}
+
+fn trader(_ salt: u256) -> Address uses (evm: mut Evm) {
+    evm.create2<Trader>(value: ether(5000), args: (), salt)
+}
+
+
+fn buy(_ m: Address, _ outcome: u256, _ amount: u256) -> u256 uses (evm: mut Evm) {
+    evm.call(
+        addr: m,
+        gas: GAS,
+        value: ether(200),
+        message: MarketMsg::Buy { outcome, amount, refund_to: Address::new(0xbeef) },
+    )
+}
+
+fn sell(_ m: Address, _ outcome: u256, _ amount: u256) -> u256 uses (evm: mut Evm) {
+    evm.call(
+        addr: m,
+        gas: GAS,
+        value: Wei::zero(),
+        message: MarketMsg::Sell { outcome, amount, to: Address::new(0xbeef) },
+    )
+}
+
+fn tbuy(_ t: Address, _ m: Address, _ outcome: u256, _ amount: u256) -> u256 uses (evm: mut Evm) {
+    evm.call(
+        addr: t,
+        gas: GAS,
+        value: Wei::zero(),
+        message: TraderMsg::TBuy { m, outcome, amount, pay: 200 * WAD, refund_to: Address::new(0xbeef) },
+    )
+}
+
+fn tsell(_ t: Address, _ m: Address, _ outcome: u256, _ amount: u256) -> u256 uses (evm: mut Evm) {
+    evm.call(
+        addr: t,
+        gas: GAS,
+        value: Wei::zero(),
+        message: TraderMsg::TSell { m, outcome, amount, to: Address::new(0xbeef) },
+    )
+}
+
+fn trefund(_ t: Address, _ m: Address, _ to: Address) -> u256 uses (evm: mut Evm) {
+    evm.call(addr: t, gas: GAS, value: Wei::zero(), message: TraderMsg::TRefund { m, to })
+}
+
+fn cancel(_ m: Address) -> u256 uses (evm: mut Evm) {
+    evm.call(addr: m, gas: GAS, value: Wei::zero(), message: MarketMsg::Cancel {})
+}
+
+fn refund(_ m: Address, _ to: Address) -> u256 uses (evm: mut Evm) {
+    evm.call(addr: m, gas: GAS, value: Wei::zero(), message: MarketMsg::Refund { to })
+}
+
+fn net_paid(_ m: Address, _ owner: Address) -> u256 uses (evm: mut Evm) {
+    evm.call(addr: m, gas: GAS, value: Wei::zero(), message: MarketMsg::NetPaid { owner })
+}
+
+fn resolve(_ m: Address, _ outcome: u256) uses (evm: mut Evm) {
+    let _: u256 = evm.call(addr: m, gas: GAS, value: Wei::zero(), message: MarketMsg::Resolve { outcome })
+}
+
+fn sweep(_ m: Address, _ to: Address) -> u256 uses (evm: mut Evm) {
+    evm.call(addr: m, gas: GAS, value: Wei::zero(), message: MarketMsg::Sweep { to })
+}
+
+#[test(should_revert, balance = 1_000_000_000_000_000_000_000_000)]
+fn cancel_before_deadline_reverts() uses (evm: mut Evm) {
+    let m = deploy_at(3, FAR)
+    let _ = buy(m, 0, 5 * WAD)
+    let _ = cancel(m)
+}
+
+#[test(balance = 1_000_000_000_000_000_000_000_000)]
+fn cancel_after_deadline_full_refunds_then_sweep() uses (evm: mut Evm) {
+    let m = deploy_at(3, EXPIRED)
+    let alice = trader(1)
+    let bob = trader(2)
+    // Three distinct traders: the test account, alice and bob.
+    let _ = buy(m, 0, 12 * WAD)
+    let _ = tbuy(alice, m, 1, 8 * WAD)
+    let _ = tbuy(bob, m, 2, 20 * WAD)
+    let _ = tsell(alice, m, 1, 3 * WAD)
+    let _ = sell(m, 0, 2 * WAD)
+    let me = evm.address()
+    let owed = net_paid(m, me) + net_paid(m, alice) + net_paid(m, bob)
+    // Anyone may cancel once the deadline has passed: here a non-creator does.
+    let pool: u256 = evm.call(
+        addr: bob,
+        gas: GAS,
+        value: Wei::zero(),
+        message: TraderMsg::TCancel { m },
+    )
+    let bal = evm.balance(m)
+    // Nobody sold at a profit beyond the subsidy, so every net payer is refunded
+    // in full, and the refund pool never exceeds the balance.
+    assert!(pool == owed)
+    assert!(wei(pool) <= bal)
+    let r_me = refund(m, Address::new(0xa1))
+    let r_alice = trefund(alice, m, Address::new(0xa2))
+    let r_bob = trefund(bob, m, Address::new(0xa3))
+    assert!(r_me == net_paid(m, me) && r_alice == net_paid(m, alice) && r_bob == net_paid(m, bob))
+    assert!(evm.balance(Address::new(0xa2)) == wei(r_alice))
+    assert!(wei(r_me + r_alice + r_bob) <= bal)
+    // The creator (test account) gets back the rest: subsidy plus rounding margins.
+    let swept = sweep(m, Address::new(0xc0))
+    assert!(wei(swept) == bal - wei(r_me + r_alice + r_bob))
+    assert!(evm.balance(m) == Wei::zero())
+}
+
+#[test(balance = 1_000_000_000_000_000_000_000_000)]
+fn cancel_sweep_keeps_unclaimed_reserve() uses (evm: mut Evm) {
+    let m = deploy_at(2, EXPIRED)
+    let alice = trader(1)
+    let _ = buy(m, 0, 10 * WAD)
+    let _ = tbuy(alice, m, 1, 6 * WAD)
+    let pool = cancel(m)
+    // Creator sweeps before anyone claims: only the excess leaves.
+    let swept = sweep(m, Address::new(0xc0))
+    assert!(evm.balance(m) == wei(pool))
+    assert!(swept > 0)
+    // A second sweep finds nothing free.
+    assert!(sweep(m, Address::new(0xc0)) == 0)
+    // Both claims still succeed in full.
+    let r_alice = trefund(alice, m, Address::new(0xa2))
+    let r_me = refund(m, Address::new(0xa1))
+    assert!(r_alice + r_me == pool)
+    assert!(evm.balance(m) == Wei::zero())
+}
+
+#[test(balance = 1_000_000_000_000_000_000_000_000)]
+fn cancel_pro_rata_when_profits_exceed_subsidy() uses (evm: mut Evm) {
+    // Pump-and-dump cycles: alice buys low and sells high into the test
+    // account's pumps, so alice ends net negative and the test account's net
+    // paid exceeds what the market holds. Refunds are scaled down pro-rata.
+    let m = deploy_at(2, EXPIRED)
+    let alice = trader(1)
+    var i: u256 = 0
+    while i < 3 {
+        let _ = tbuy(alice, m, 0, 30 * WAD)
+        let _ = buy(m, 0, 100 * WAD)
+        let _ = tsell(alice, m, 0, 30 * WAD)
+        let _ = sell(m, 0, 100 * WAD)
+        i += 1
+    }
+    let me = evm.address()
+    assert!(net_paid(m, alice) == 0)
+    let owed = net_paid(m, me)
+    let bal = evm.balance(m)
+    assert!(wei(owed) > bal)
+    let pool = cancel(m)
+    assert!(wei(pool) == bal)
+    let r_me = refund(m, Address::new(0xa1))
+    assert!(r_me <= pool && pool - r_me <= 1)
+    assert!(sweep(m, Address::new(0xc0)) == pool - r_me)
+}
+
+#[test(should_revert, balance = 1_000_000_000_000_000_000_000_000)]
+fn cancel_double_refund_reverts() uses (evm: mut Evm) {
+    let m = deploy_at(2, EXPIRED)
+    let _ = buy(m, 0, 5 * WAD)
+    let _ = cancel(m)
+    let _ = refund(m, Address::new(0xa1))
+    let _ = refund(m, Address::new(0xa1))
+}
+
+#[test(should_revert, balance = 1_000_000_000_000_000_000_000_000)]
+fn cancel_refund_before_cancel_reverts() uses (evm: mut Evm) {
+    let m = deploy_at(2, EXPIRED)
+    let _ = buy(m, 0, 5 * WAD)
+    let _ = refund(m, Address::new(0xa1))
+}
+
+#[test(should_revert, balance = 1_000_000_000_000_000_000_000_000)]
+fn cancel_then_resolve_reverts() uses (evm: mut Evm) {
+    let m = deploy_at(2, EXPIRED)
+    let _ = buy(m, 0, 5 * WAD)
+    let _ = cancel(m)
+    resolve(m, 0)
+}
+
+#[test(should_revert, balance = 1_000_000_000_000_000_000_000_000)]
+fn cancel_after_resolve_reverts() uses (evm: mut Evm) {
+    let m = deploy_at(2, EXPIRED)
+    let _ = buy(m, 0, 5 * WAD)
+    resolve(m, 0)
+    let _ = cancel(m)
+}
+
+#[test(should_revert, balance = 1_000_000_000_000_000_000_000_000)]
+fn cancel_then_trade_reverts() uses (evm: mut Evm) {
+    let m = deploy_at(2, EXPIRED)
+    let _ = cancel(m)
+    let _ = buy(m, 0, 5 * WAD)
+}
+
+#[test(should_revert, balance = 1_000_000_000_000_000_000_000_000)]
+fn cancel_then_redeem_reverts() uses (evm: mut Evm) {
+    let m = deploy_at(2, EXPIRED)
+    let _ = buy(m, 0, 5 * WAD)
+    let _ = cancel(m)
+    let _: u256 = evm.call(addr: m, gas: GAS, value: Wei::zero(), message: MarketMsg::Redeem { to: Address::new(0xa1) })
+}
+
+#[test(balance = 1_000_000_000_000_000_000_000_000)]
+fn cancel_resolve_before_deadline_still_works() uses (evm: mut Evm) {
+    // An expired market can still be resolved as long as nobody cancelled.
+    let m = deploy_at(2, EXPIRED)
+    let _ = buy(m, 1, 5 * WAD)
+    resolve(m, 1)
+    let got: u256 = evm.call(addr: m, gas: GAS, value: Wei::zero(), message: MarketMsg::Redeem { to: Address::new(0xa1) })
+    assert!(got == 5 * WAD)
+}

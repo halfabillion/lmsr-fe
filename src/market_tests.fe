@@ -8,9 +8,12 @@ use std::evm::{ether, wei}
 
 const B: u256 = 10_000_000_000_000_000_000
 
+/// Far-future resolve-by deadline (the test EVM's clock is fixed at 1).
+const FAR: u256 = 4_000_000_000
+
 fn deploy(_ n: u256) -> Address uses (evm: mut Evm) {
     let subsidy = lmsr_max_loss(B, n as usize)
-    evm.create2<Market>(value: wei(subsidy), args: (B, n), salt: 0)
+    evm.create2<Market>(value: wei(subsidy), args: (B, n, FAR), salt: 0)
 }
 
 fn buy(_ m: Address, _ outcome: u256, _ amount: u256, _ pay: Wei, _ refund_to: Address) -> u256
@@ -91,7 +94,7 @@ fn market_buy_charges_quote_and_refunds() uses (evm: mut Evm) {
 #[test(should_revert, balance = 1_000_000_000_000_000_000_000)]
 fn market_underfunded_deploy_reverts() uses (evm: mut Evm) {
     let subsidy = lmsr_max_loss(B, 4)
-    let _ = evm.create2<Market>(value: wei(subsidy - 1), args: (B, 4), salt: 0)
+    let _ = evm.create2<Market>(value: wei(subsidy - 1), args: (B, 4, FAR), salt: 0)
 }
 
 #[test(should_revert, balance = 1_000_000_000_000_000_000_000)]

@@ -9,9 +9,20 @@
 // Every buy charges at least the exact LMSR cost difference and every sell
 // pays at most it, so the contract balance always covers the winning
 // outcome's outstanding shares (LMSR's bounded-loss property).
+//
+// M3 timeout / cancel path: the market carries a resolve-by `deadline` (unix
+// seconds, set at deploy). If the creator has not resolved by then, anyone may
+// `cancel()`. Each trader can then claim a refund of their net collateral paid
+// in (total paid on buys minus total received on sells, floored at 0). If the
+// balance at cancel time cannot cover every net payer in full (only possible
+// when some traders sold at a profit larger than the subsidy), refunds are
+// scaled pro-rata and rounded down, so the claims always sum to at most the
+// balance snapshot. The creator can sweep everything above the unclaimed
+// refund reserve at any time after cancel.
 
 use std::evm::StorageMap
-use ingot::{lmsr_max_loss, lmsr_buy_cost_n, lmsr_sell_payout_n, lmsr_price_n}
+use core::num::mul_div
+use ingot::{lmsr_max_loss, lmsr_buy_cost_n, lmsr_sell_payout_n, lmsr_price_n, sat_sub}
 
 pub const MAX_OUTCOMES: u256 = 8
 
@@ -36,6 +47,14 @@ pub msg MarketMsg {
     Redeem { to: Address } -> u256,
     #[selector = sol("sweep(address)")]
     Sweep { to: Address } -> u256,
+    #[selector = sol("cancel()")]
+    Cancel {} -> u256,
+    #[selector = sol("refund(address)")]
+    Refund { to: Address } -> u256,
+    #[selector = sol("refundOf(address)")]
+    RefundOf { owner: Address } -> u256,
+    #[selector = sol("netPaid(address)")]
+    NetPaid { owner: Address } -> u256,
 }
 
 #[event]
@@ -50,6 +69,23 @@ pub struct Traded {
 
 #[event]
 pub struct Resolved { outcome: u256 }
+
+#[event]
+pub struct Cancelled { pool: u256, owed: u256 }
+
+#[event]
+pub struct Refunded {
+    #[indexed]
+    trader: Address,
+    amount: u256,
+}
+
+/// Refund owed to a trader with net collateral `net` once cancelled:
+/// net * pool / base, rounded down (pool <= base, so never more than net).
+fn refund_amount(_ net: u256, _ pool: u256, _ base: u256) -> u256 {
+    if base == 0 { return 0 }
+    mul_div(net, pool, base)
+}
 
 /// Outstanding shares of every outcome, as the library's fixed-capacity array.
 fn book(_ q: StorageMap<u256, u256>) -> [u256; 8] {
@@ -70,12 +106,26 @@ pub contract Market uses (ctx: Ctx, call: mut Call, log: mut Log) {
     mut shares: StorageMap<(Address, u256), u256>,
     mut resolved: bool,
     mut winner: u256,
+    deadline: u256,
+    mut cancelled: bool,
+    // Per-trader collateral flows, for the cancel-path refund.
+    mut paid_in: StorageMap<Address, u256>,
+    mut paid_out: StorageMap<Address, u256>,
+    // Sum over traders of max(paid_in - paid_out, 0).
+    mut total_net: u256,
+    // Snapshot at cancel: pool = min(balance, total_net), base = total_net.
+    mut refund_pool: u256,
+    mut refund_base: u256,
+    mut refunded: u256,
+    mut claimed: StorageMap<Address, bool>,
 
-    /// Deploy a market with liquidity parameter `b` (WAD) and `n` outcomes.
-    /// The deployer must send at least lmsr_max_loss(b, n) wei as subsidy.
+    /// Deploy a market with liquidity parameter `b` (WAD), `n` outcomes and a
+    /// resolve-by `deadline` (unix seconds). The deployer must send at least
+    /// lmsr_max_loss(b, n) wei as subsidy. The deadline is not checked against
+    /// the current time, so a test can deploy an already-expired market.
     #[payable]
-    init(b: u256, n: u256)
-    uses (ctx, mut creator, mut liquidity, mut outcomes)
+    init(b: u256, n: u256, resolve_by: u256)
+    uses (ctx, mut creator, mut liquidity, mut outcomes, mut deadline)
     {
         assert!(n >= 2 && n <= MAX_OUTCOMES, "outcomes must be 2..=8")
         assert!(b > 0, "liquidity must be positive")
@@ -86,14 +136,29 @@ pub contract Market uses (ctx: Ctx, call: mut Call, log: mut Log) {
         creator = ctx.caller()
         liquidity = b
         outcomes = n
+        deadline = resolve_by
     }
 
     recv MarketMsg {
         #[payable]
         Buy { outcome, amount, refund_to } -> u256
-        uses (ctx, mut call, mut log, liquidity, outcomes, mut q, mut shares, resolved)
+        uses (
+            ctx,
+            mut call,
+            mut log,
+            liquidity,
+            outcomes,
+            mut q,
+            mut shares,
+            resolved,
+            cancelled,
+            mut paid_in,
+            paid_out,
+            mut total_net,
+        )
         {
             assert!(!resolved, "market resolved")
+            assert!(!cancelled, "market cancelled")
             assert!(outcome < outcomes, "bad outcome")
             assert!(amount > 0, "zero amount")
             let cost = lmsr_buy_cost_n(
@@ -111,6 +176,10 @@ pub contract Market uses (ctx: Ctx, call: mut Call, log: mut Log) {
                     key: (trader, outcome),
                     value: shares.get(key: (trader, outcome)) + amount,
                 )
+            let p_in = paid_in.get(key: trader)
+            let p_out = paid_out.get(key: trader)
+            total_net = total_net - sat_sub(p_in, p_out) + sat_sub(p_in + cost, p_out)
+            paid_in.set(key: trader, value: p_in + cost)
             log.emit(
                 Traded { trader, outcome, amount, collateral: cost, is_buy: true },
             )
@@ -134,8 +203,13 @@ pub contract Market uses (ctx: Ctx, call: mut Call, log: mut Log) {
             mut q,
             mut shares,
             resolved,
+            cancelled,
+            paid_in,
+            mut paid_out,
+            mut total_net,
         ) {
             assert!(!resolved, "market resolved")
+            assert!(!cancelled, "market cancelled")
             assert!(outcome < outcomes, "bad outcome")
             let trader = ctx.caller()
             let held = shares.get(key: (trader, outcome))
@@ -149,6 +223,10 @@ pub contract Market uses (ctx: Ctx, call: mut Call, log: mut Log) {
             )
             q.set(key: outcome, value: q.get(key: outcome) - amount)
             shares.set(key: (trader, outcome), value: held - amount)
+            let p_in = paid_in.get(key: trader)
+            let p_out = paid_out.get(key: trader)
+            total_net = total_net - sat_sub(p_in, p_out) + sat_sub(p_in, p_out + payout)
+            paid_out.set(key: trader, value: p_out + payout)
             log.emit(
                 Traded { trader, outcome, amount, collateral: payout, is_buy: false },
             )
@@ -204,9 +282,11 @@ pub contract Market uses (ctx: Ctx, call: mut Call, log: mut Log) {
             outcomes,
             mut resolved,
             mut winner,
+            cancelled,
         ) {
             assert!(ctx.caller() == creator, "only creator")
             assert!(!resolved, "already resolved")
+            assert!(!cancelled, "market cancelled")
             assert!(outcome < outcomes, "bad outcome")
             resolved = true
             winner = outcome
@@ -230,11 +310,28 @@ pub contract Market uses (ctx: Ctx, call: mut Call, log: mut Log) {
         }
 
         /// After resolution the creator takes back whatever exceeds the
-        /// still-unredeemed winning shares.
-        Sweep { to } -> u256 uses (ctx, mut call, creator, q, resolved, winner) {
-            assert!(resolved, "not resolved")
+        /// still-unredeemed winning shares; after cancel, whatever exceeds the
+        /// still-unclaimed refund reserve (refund_pool - refunded).
+        Sweep { to } -> u256 uses (
+            ctx,
+            mut call,
+            creator,
+            q,
+            resolved,
+            winner,
+            cancelled,
+            refund_pool,
+            refunded,
+        ) {
+            assert!(resolved || cancelled, "not settled")
             assert!(ctx.caller() == creator, "only creator")
-            let free = ctx.selfbalance().as_wei() - q.get(key: winner)
+            var reserve: u256 = 0
+            if resolved {
+                reserve = q.get(key: winner)
+            } else {
+                reserve = refund_pool - refunded
+            }
+            let free = ctx.selfbalance().as_wei() - reserve
             if free > 0 {
                 assert!(
                     call.send_value(addr: to, gas: 0, value: std::evm::wei(free)).success(),
@@ -242,6 +339,78 @@ pub contract Market uses (ctx: Ctx, call: mut Call, log: mut Log) {
                 )
             }
             free
+        }
+
+        /// After the resolve-by deadline, with no resolution, anyone can cancel.
+        /// Snapshots the refund pool: min(balance, total net collateral).
+        Cancel {} -> u256 uses (
+            ctx,
+            mut log,
+            resolved,
+            deadline,
+            mut cancelled,
+            total_net,
+            mut refund_pool,
+            mut refund_base,
+        ) {
+            assert!(!resolved, "market resolved")
+            assert!(!cancelled, "already cancelled")
+            assert!(ctx.timestamp().as_seconds() >= deadline, "before deadline")
+            let bal = ctx.selfbalance().as_wei()
+            var pool = total_net
+            if bal < pool { pool = bal }
+            cancelled = true
+            refund_pool = pool
+            refund_base = total_net
+            log.emit(Cancelled { pool, owed: total_net })
+            pool
+        }
+
+        /// Pay the caller's cancel-path refund to `to`. One claim per trader.
+        Refund { to } -> u256 uses (
+            ctx,
+            mut call,
+            mut log,
+            cancelled,
+            paid_in,
+            paid_out,
+            refund_pool,
+            refund_base,
+            mut refunded,
+            mut claimed,
+        ) {
+            assert!(cancelled, "not cancelled")
+            let trader = ctx.caller()
+            assert!(!claimed.get(key: trader), "already claimed")
+            let net = sat_sub(paid_in.get(key: trader), paid_out.get(key: trader))
+            let amount = refund_amount(net, refund_pool, refund_base)
+            assert!(amount > 0, "nothing to refund")
+            claimed.set(key: trader, value: true)
+            refunded = refunded + amount
+            log.emit(Refunded { trader, amount })
+            assert!(
+                call.send_value(addr: to, gas: 0, value: std::evm::wei(amount)).success(),
+                "transfer failed",
+            )
+            amount
+        }
+
+        /// Refund `owner` could claim now (0 before cancel or after claiming).
+        RefundOf { owner } -> u256 uses (
+            cancelled,
+            paid_in,
+            paid_out,
+            refund_pool,
+            refund_base,
+            claimed,
+        ) {
+            if !cancelled || claimed.get(key: owner) { return 0 }
+            let net = sat_sub(paid_in.get(key: owner), paid_out.get(key: owner))
+            refund_amount(net, refund_pool, refund_base)
+        }
+
+        NetPaid { owner } -> u256 uses (paid_in, paid_out) {
+            sat_sub(paid_in.get(key: owner), paid_out.get(key: owner))
         }
     }
 }
