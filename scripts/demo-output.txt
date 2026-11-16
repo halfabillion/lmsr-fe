@@ -1,0 +1,19 @@
+== Market 1: 3 outcomes, b=10, subsidy 11 ETH (>= b*ln3 = 10.986)
+deployed 0x5fbdb2315678afecb367f032d93f642f64180aa3 (code 5100 bytes)
+start        p0=0.3333  p1=0.3333  p2=0.3333
+alice buys 5 shares of #0, cost 1.957644807495337022 ETH
+after        p0=0.4519  p1=0.2741  p2=0.2741
+bob buys 8 shares of #1, cost 2.895919798231807742 ETH (overpays 1 ETH, refunded)
+after        p0=0.3383  p1=0.4566  p2=0.2052
+alice sells 2 of #0 for 0.632746803261875428 ETH
+after        p0=0.2950  p1=0.4864  p2=0.2186
+pool balance 15.220817802465269336 ETH; outstanding #0=3 #1=8
+creator resolves outcome #0
+alice redeems 3 winning shares: +2.999981928503583669 ETH (net of gas)
+creator sweeps remainder; pool now 0 ETH
+
+== Market 2: timeout path (resolve-by already passed)
+deployed 0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9 (2 outcomes, subsidy 7 ETH >= b*ln2 = 6.931)
+bob buys 4 of #1 for 2.198680718400074568 ETH; nobody resolves; anyone calls cancel()
+bob's refund owed: 2.198680718400074568 ETH (= net collateral paid)
+bob claims refund; pool now 7 ETH (subsidy left for creator sweep)

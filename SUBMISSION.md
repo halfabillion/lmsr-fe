@@ -29,8 +29,9 @@ Submission form: https://docs.google.com/forms/d/e/1FAIpQLSd2pqUkJzFpZMu5FVQP-Nt
 - [x] Reproducible build/test instructions and automated tests (README).
 - [x] README: problem, approach, architecture, limitations.
 - [x] One-sentence pitch + Fe highlight (README).
-- [ ] Demo: the CLI demo is in place (`fe test`); optionally add a short
-      recording.
+- [x] Demo: `scripts/demo.sh` compiles the Fe Market, deploys it to a local anvil
+      chain and runs a full lifecycle plus the cancel/refund path with cast;
+      captured output in `scripts/demo-output.txt`.
 - [x] Declaration of pre-existing work, third-party code, AI assistance (README).
 
 ## M3 ideas (priority order)

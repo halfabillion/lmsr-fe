@@ -208,3 +208,12 @@ Ali Ghaedi (solo).
 ## License
 
 Apache-2.0 (see `LICENSE`).
+
+
+## On-chain demo
+
+`scripts/demo.sh` (needs `fe` and Foundry) builds the contract, starts a local
+anvil chain and drives two markets with `cast`: a 3-outcome market through
+buy / overpay-refund / sell / resolve / redeem / sweep, and a 2-outcome market
+whose resolve-by deadline has passed through cancel / refund. Prices printed
+after each trade always sum to 1. Sample output: `scripts/demo-output.txt`.
