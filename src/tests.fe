@@ -1,4 +1,18 @@
-use ingot::{WAD, wad_mul_down, wad_mul_up, wad_div_down, wad_div_up, wad_sqrt, exp_neg_wad, ln_wad, lmsr_cost, lmsr_price1, lmsr_buy1_cost, cost_err}
+use ingot::{
+    WAD,
+    wad_mul_down,
+    wad_mul_up,
+    wad_div_down,
+    wad_div_up,
+    wad_sqrt,
+    exp_neg_wad,
+    ln_wad,
+    lmsr_cost,
+    lmsr_price1,
+    lmsr_buy1_cost,
+    lmsr_sell1_payout,
+    cost_err,
+}
 
 #[test]
 fn mul_rounding() {
@@ -51,11 +65,29 @@ fn near(_ got: u256, _ want: u256, _ tol: u256) -> bool {
 #[test]
 fn exp_neg_vectors() {
     assert!(exp_neg_wad(0) == WAD)
-    assert!(near(exp_neg_wad(100_000_000_000_000_000), 904_837_418_035_959_573, 4))
-    assert!(near(exp_neg_wad(500_000_000_000_000_000), 606_530_659_712_633_423, 4))
+    assert!(
+        near(
+            exp_neg_wad(100_000_000_000_000_000),
+            904_837_418_035_959_573,
+            4,
+        ),
+    )
+    assert!(
+        near(
+            exp_neg_wad(500_000_000_000_000_000),
+            606_530_659_712_633_423,
+            4,
+        ),
+    )
     assert!(near(exp_neg_wad(WAD), 367_879_441_171_442_321, 4))
     assert!(near(exp_neg_wad(2 * WAD), 135_335_283_236_612_691, 4))
-    assert!(near(exp_neg_wad(693_147_180_559_945_309), 500_000_000_000_000_000, 4))
+    assert!(
+        near(
+            exp_neg_wad(693_147_180_559_945_309),
+            500_000_000_000_000_000,
+            4,
+        ),
+    )
     assert!(near(exp_neg_wad(10 * WAD), 45_399_929_762_484, 4))
     assert!(near(exp_neg_wad(40 * WAD), 4, 2))
     assert!(exp_neg_wad(100 * WAD) == 0)
@@ -66,9 +98,21 @@ fn ln_vectors() {
     assert!(ln_wad(WAD) == 0)
     assert!(near(ln_wad(2 * WAD), 693_147_180_559_945_309, 1))
     assert!(near(ln_wad(3 * WAD), 1_098_612_288_668_109_691, 1))
-    assert!(near(ln_wad(1_500_000_000_000_000_000), 405_465_108_108_164_381, 1))
+    assert!(
+        near(
+            ln_wad(1_500_000_000_000_000_000),
+            405_465_108_108_164_381,
+            1,
+        ),
+    )
     assert!(near(ln_wad(10 * WAD), 2_302_585_092_994_045_684, 1))
-    assert!(near(ln_wad(1_000_000_000_000 * WAD), 27_631_021_115_928_548_208, 1))
+    assert!(
+        near(
+            ln_wad(1_000_000_000_000 * WAD),
+            27_631_021_115_928_548_208,
+            1,
+        ),
+    )
 }
 
 #[test(should_revert)]
@@ -81,9 +125,27 @@ fn lmsr_cost_vectors() {
     let b: u256 = 100 * WAD
     let tol: u256 = cost_err(b)
     assert!(near(lmsr_cost(0, 0, b), 69_314_718_055_994_530_941, tol))
-    assert!(near(lmsr_cost(50 * WAD, 0, b), 97_407_698_418_010_668_087, tol))
-    assert!(near(lmsr_cost(0, 30 * WAD, b), 85_435_524_446_852_711_881, tol))
-    assert!(near(lmsr_cost(250 * WAD, 10 * WAD, b), 258_683_615_215_394_967_848, tol))
+    assert!(
+        near(
+            lmsr_cost(50 * WAD, 0, b),
+            97_407_698_418_010_668_087,
+            tol,
+        ),
+    )
+    assert!(
+        near(
+            lmsr_cost(0, 30 * WAD, b),
+            85_435_524_446_852_711_881,
+            tol,
+        ),
+    )
+    assert!(
+        near(
+            lmsr_cost(250 * WAD, 10 * WAD, b),
+            258_683_615_215_394_967_848,
+            tol,
+        ),
+    )
 }
 
 #[test]
@@ -106,4 +168,42 @@ fn lmsr_buy_never_undercharges() {
     assert!(charged - exact <= 2 * cost_err(b))
     // Buying more of an outcome is never cheaper.
     assert!(lmsr_buy1_cost(10 * WAD, 0, b, 10 * WAD) > charged)
+}
+
+#[test]
+fn lmsr_sell_never_overpays() {
+    let b: u256 = 100 * WAD
+    // Exact C(10,0) - C(0,0) for b = 100 (Python decimal): 5.124947951362558541
+    let exact: u256 = 5_124_947_951_362_558_541
+    let paid_out: u256 = lmsr_sell1_payout(10 * WAD, 0, b, 10 * WAD)
+    assert!(paid_out + 1 <= exact)
+    assert!(exact - paid_out <= 2 * cost_err(b))
+}
+
+#[test]
+fn lmsr_round_trip_never_profits() {
+    let b: u256 = 100 * WAD
+    let paid: u256 = lmsr_buy1_cost(0, 0, b, 10 * WAD)
+    let back: u256 = lmsr_sell1_payout(10 * WAD, 0, b, 10 * WAD)
+    assert!(back < paid)
+    assert!(paid - back == 2 * cost_err(b))
+    // Larger, lopsided book: still strictly loses the rounding margin.
+    let paid2: u256 = lmsr_buy1_cost(300 * WAD, 40 * WAD, b, 75 * WAD)
+    let back2: u256 = lmsr_sell1_payout(375 * WAD, 40 * WAD, b, 75 * WAD)
+    assert!(back2 < paid2)
+    // Selling dust never pays anything.
+    assert!(lmsr_sell1_payout(10 * WAD, 0, b, 1) == 0)
+}
+
+#[test(should_revert)]
+fn lmsr_sell_more_than_outstanding_reverts() {
+    let _ = lmsr_sell1_payout(5 * WAD, 0, 100 * WAD, 6 * WAD)
+}
+
+#[test]
+fn lmsr_prices_sum_to_one_after_trades() {
+    let b: u256 = 100 * WAD
+    let p1: u256 = lmsr_price1(375 * WAD, 40 * WAD, b)
+    let p2: u256 = lmsr_price1(40 * WAD, 375 * WAD, b)
+    assert!(near(p1 + p2, WAD, 2))
 }

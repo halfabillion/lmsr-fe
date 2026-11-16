@@ -46,9 +46,7 @@ pub const LN2_E36: u256 = 693_147_180_559_945_309_417_232_121_458_176_568
 /// Range reduction: x = k*ln2 + r with 0 <= r < ln2, so exp(-x) = 2^-k / exp(r).
 pub fn exp_neg_wad(_ x: u256) -> u256 {
     let k: u256 = x / LN2_WAD
-    if k >= 60 {
-        return 0
-    }
+    if k >= 60 { return 0 }
     let r: u256 = x - k * LN2_WAD
     // Taylor series for exp(r); r < 0.7 so terms vanish after ~25 steps.
     var term: u256 = WAD
@@ -104,16 +102,12 @@ pub fn cost_err(_ b: u256) -> u256 {
 }
 
 fn abs_diff(_ a: u256, _ b: u256) -> u256 {
-    if a >= b {
-        return a - b
-    }
+    if a >= b { return a - b }
     b - a
 }
 
 fn max_u(_ a: u256, _ b: u256) -> u256 {
-    if a >= b {
-        return a
-    }
+    if a >= b { return a }
     b
 }
 
@@ -135,5 +129,26 @@ pub fn lmsr_price1(_ q1: u256, _ q2: u256, _ b: u256) -> u256 {
 /// Collateral a trader pays to buy `amount` shares of outcome 1, rounded in the
 /// maker's favour (exact cost difference plus the documented error bound).
 pub fn lmsr_buy1_cost(_ q1: u256, _ q2: u256, _ b: u256, _ amount: u256) -> u256 {
-    lmsr_cost(q1 + amount, q2, b) - lmsr_cost(q1, q2, b) + cost_err(b)
+    sat_sub(lmsr_cost(q1 + amount, q2, b), lmsr_cost(q1, q2, b)) + cost_err(b)
+}
+
+/// a - b, or 0 if b > a. Used so a sub-wei inversion of the computed cost
+/// curve (possible only for dust-sized trades) can never revert or pay out.
+pub fn sat_sub(_ a: u256, _ b: u256) -> u256 {
+    if a >= b { return a - b }
+    0
+}
+
+/// Collateral paid out to a trader who sells `amount` shares of outcome 1 back
+/// to the maker, rounded in the maker's favour: the computed cost difference
+/// minus the error bound, floored at 0. Reverts if amount > q1 (the maker never
+/// buys back shares it did not sell). Because buy and sell use the same
+/// deterministic cost function, buy-then-sell of the same amount returns
+/// exactly 2 * cost_err(b) less than was paid in, so a round trip never profits.
+pub fn lmsr_sell1_payout(_ q1: u256, _ q2: u256, _ b: u256, _ amount: u256) -> u256 {
+    assert!(amount <= q1)
+    sat_sub(
+        sat_sub(lmsr_cost(q1, q2, b), lmsr_cost(q1 - amount, q2, b)),
+        cost_err(b),
+    )
 }
