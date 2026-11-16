@@ -254,3 +254,1112 @@ fn vec_n5_of_8() {
     assert!(back <= 5_057_874_852_945_137_520)
     assert!(back < paid)
 }
+
+#[test]
+fn prop_00_n3() {
+    let q: [u256; 8] = [
+        12_745_416_680_595_672_261_253,
+        12_149_894_339_509_500_632_474,
+        19_111_069_534_654_967_002_101,
+        0,
+        0,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 3
+    let b: u256 = 485_732_617_238_594_882_602
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 0, 866_839_547_798_587_435_742)
+    assert!(paid >= 4_898_787_805_933_406, "buy under exact")
+    assert!(
+        paid - 4_898_787_805_933_406 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 0, 4_629_007_502_263_071_369_262)
+    assert!(back <= 988_148_840_294_031, "sell over exact")
+    assert!(
+        988_148_840_294_031 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_01_n6() {
+    let q: [u256; 8] = [
+        1_960_101_323_926_279_498_703,
+        86_819_610_398_557_911_575,
+        1_025_137_034_625_284_265_455,
+        1_521_072_289_165_220_199_124,
+        1_102_772_540_477_213_325_694,
+        428_053_877_543_114_700_478,
+        0,
+        0,
+    ]
+    let n: usize = 6
+    let b: u256 = 267_647_193_866_203_989_904
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 1, 10_684_961_355_494_523_712)
+    assert!(paid >= 7_839_725_162_760_242, "buy under exact")
+    assert!(
+        paid - 7_839_725_162_760_242 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 1, 35_779_311_040_306_752_324)
+    assert!(back <= 24_087_010_656_067_094, "sell over exact")
+    assert!(
+        24_087_010_656_067_094 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_02_n5() {
+    let q: [u256; 8] = [
+        279_253_746_858_094_311_618,
+        655_480_774_255_852_659_442,
+        475_437_289_001_355_199_290,
+        685_590_977_369_023_085_147,
+        520_270_638_469_576_278_347,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 5
+    let b: u256 = 249_181_894_582_466_152_886
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 1, 11_584_724_395_242_676_211)
+    assert!(paid >= 3_447_296_095_103_893_922, "buy under exact")
+    assert!(
+        paid - 3_447_296_095_103_893_922 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 1, 144_207_196_902_878_457_729)
+    assert!(back <= 34_306_951_991_128_788_781, "sell over exact")
+    assert!(
+        34_306_951_991_128_788_781 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_03_n3() {
+    let q: [u256; 8] = [
+        1_833_408_319_554_544_402_656,
+        2_178_951_785_783_669_240_162,
+        1_813_373_284_896_201_017_933,
+        0,
+        0,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 3
+    let b: u256 = 322_365_096_390_619_216_551
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 1, 737_341_317_214_894_290_046)
+    assert!(paid >= 594_205_067_247_502_649_537, "buy under exact")
+    assert!(
+        paid - 594_205_067_247_502_649_537 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 1, 1_147_964_936_380_407_102_949)
+    assert!(back <= 282_627_979_935_735_744_165, "sell over exact")
+    assert!(
+        282_627_979_935_735_744_165 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_04_n3() {
+    let q: [u256; 8] = [
+        59_592_709_275_716_142_549,
+        742_318_747_028_464_324_056,
+        852_337_545_889_163_873_874,
+        0,
+        0,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 3
+    let b: u256 = 31_080_467_183_003_323_736
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 2, 10_607_878_743_689_431_064)
+    assert!(paid >= 10_353_396_913_316_379_073, "buy under exact")
+    assert!(
+        paid - 10_353_396_913_316_379_073 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 2, 689_844_504_812_838_575_305)
+    assert!(back <= 110_907_883_394_218_546_594, "sell over exact")
+    assert!(
+        110_907_883_394_218_546_594 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_05_n4() {
+    let q: [u256; 8] = [
+        178_507_670_544_415_631_377,
+        147_708_154_749_734_485_757,
+        186_554_842_240_142_178_754,
+        119_950_259_271_972_721_604,
+        0,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 4
+    let b: u256 = 193_833_425_499_264_928_023
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 0, 250_605_551_919_295_682_522)
+    assert!(paid >= 105_934_122_437_750_375_470, "buy under exact")
+    assert!(
+        paid - 105_934_122_437_750_375_470 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 0, 18_494_307_106_591_047_383)
+    assert!(back <= 4_914_794_256_008_972_525, "sell over exact")
+    assert!(
+        4_914_794_256_008_972_525 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_06_n6() {
+    let q: [u256; 8] = [
+        9_725_919_026_161_658_890_196,
+        1_303_483_680_406_320_713_651,
+        897_218_820_598_645_904_229,
+        14_118_631_777_678_774_431_430,
+        675_401_851_480_699_420_229,
+        16_656_849_080_749_202_230_825,
+        0,
+        0,
+    ]
+    let n: usize = 6
+    let b: u256 = 443_752_840_694_281_092_104
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 0, 1_104_629_394_664_390_159_707)
+    assert!(paid >= 805_353_314_187_873, "buy under exact")
+    assert!(
+        paid - 805_353_314_187_873 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 0, 6_745_378_073_579_544_962_967)
+    assert!(back <= 72_864_819_895_955, "sell over exact")
+    assert!(
+        72_864_819_895_955 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_07_n3() {
+    let q: [u256; 8] = [
+        54_090_387_535_988_280_401,
+        31_702_775_310_865_681_377,
+        38_473_904_143_303_449_416,
+        0,
+        0,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 3
+    let b: u256 = 24_583_420_042_223_159_785
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 2, 60_341_756_965_172_218_468)
+    assert!(paid >= 33_571_169_031_059_257_397, "buy under exact")
+    assert!(
+        paid - 33_571_169_031_059_257_397 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 2, 30_564_771_504_400_314_714)
+    assert!(back <= 5_336_316_642_049_188_517, "sell over exact")
+    assert!(
+        5_336_316_642_049_188_517 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_08_n5() {
+    let q: [u256; 8] = [
+        1_421_582_275_627_762_464_995,
+        2_157_734_214_295_222_812_898,
+        2_066_171_391_237_098_770_415,
+        2_040_706_209_398_114_576_268,
+        1_755_327_945_763_047_822_802,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 5
+    let b: u256 = 55_417_335_602_308_005_038
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 2, 1_058_667_295_707_874_411)
+    assert!(paid >= 155_727_242_356_185_022, "buy under exact")
+    assert!(
+        paid - 155_727_242_356_185_022 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 2, 696_587_367_680_267_851_416)
+    assert!(back <= 8_739_783_361_139_365_641, "sell over exact")
+    assert!(
+        8_739_783_361_139_365_641 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_09_n2() {
+    let q: [u256; 8] = [213_142_190_346_004_125_956, 117_636_766_556_462_454_989, 0, 0, 0, 0, 0, 0]
+    let n: usize = 2
+    let b: u256 = 228_449_664_914_676_742_062
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 1, 280_850_727_698_596_320_344)
+    assert!(paid >= 153_773_194_154_962_010_236, "buy under exact")
+    assert!(
+        paid - 153_773_194_154_962_010_236 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 1, 29_226_285_676_479_473_585)
+    assert!(back <= 11_158_946_253_341_926_253, "sell over exact")
+    assert!(
+        11_158_946_253_341_926_253 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_10_n3() {
+    let q: [u256; 8] = [
+        7_058_659_060_017_703_884_931,
+        3_024_416_070_361_401_620_794,
+        520_015_708_384_290_575_094,
+        0,
+        0,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 3
+    let b: u256 = 182_866_017_877_277_953_221
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 1, 415_673_448_797_543_733_917)
+    assert!(paid >= 417_897_969_041, "buy under exact")
+    assert!(paid - 417_897_969_041 <= 2 * tol + 1, "buy over budget")
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 1, 1_387_682_564_068_340_702_668)
+    assert!(back <= 47_957_615_842, "sell over exact")
+    assert!(47_957_615_842 - back <= 2 * tol + 1, "sell under budget")
+}
+
+#[test]
+fn prop_11_n4() {
+    let q: [u256; 8] = [
+        2_984_171_894_653_734_158,
+        467_626_083_408_965_983,
+        1_136_877_051_896_838_024,
+        7_686_445_019_376_309_690,
+        0,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 4
+    let b: u256 = 10_269_151_136_812_769_382
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 3, 22_052_505_073_068_916_262)
+    assert!(paid >= 13_836_417_493_727_336_665, "buy under exact")
+    assert!(
+        paid - 13_836_417_493_727_336_665 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 3, 2_820_054_926_027_656_249)
+    assert!(back <= 973_072_327_024_280_892, "sell over exact")
+    assert!(
+        973_072_327_024_280_892 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_12_n2() {
+    let q: [u256; 8] = [
+        790_320_197_316_996_205_201,
+        1_945_795_987_815_612_381_203,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 2
+    let b: u256 = 497_154_427_945_482_845_958
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 1, 145_972_289_121_785_513_036)
+    assert!(paid >= 134_566_713_078_041_471_131, "buy under exact")
+    assert!(
+        paid - 134_566_713_078_041_471_131 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 1, 133_963_297_585_982_807_591)
+    assert!(back <= 120_443_616_225_381_156_173, "sell over exact")
+    assert!(
+        120_443_616_225_381_156_173 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_13_n2() {
+    let q: [u256; 8] = [
+        4_478_778_378_002_298_297_069,
+        3_758_499_517_728_224_187_184,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 2
+    let b: u256 = 140_672_098_343_179_775_462
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 0, 414_809_335_991_845_284_757)
+    assert!(paid >= 414_015_437_709_748_208_841, "buy under exact")
+    assert!(
+        paid - 414_015_437_709_748_208_841 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 0, 1_870_629_216_608_278_132_625)
+    assert!(back <= 721_077_285_478_148_739_832, "sell over exact")
+    assert!(
+        721_077_285_478_148_739_832 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_14_n7() {
+    let q: [u256; 8] = [
+        815_673_725_271_848_219_582,
+        593_762_818_774_910_001_632,
+        384_377_534_853_266_879_401,
+        784_863_689_497_718_107_127,
+        780_921_251_098_565_116_912,
+        473_948_492_499_209_821_716,
+        441_335_278_713_847_069_865,
+        0,
+    ]
+    let n: usize = 7
+    let b: u256 = 288_121_777_960_865_770_130
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 3, 57_054_426_265_450_736_443)
+    assert!(paid >= 13_670_167_624_777_025_496, "buy under exact")
+    assert!(
+        paid - 13_670_167_624_777_025_496 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 3, 409_304_847_682_984_000_991)
+    assert!(back <= 53_089_396_616_992_488_726, "sell over exact")
+    assert!(
+        53_089_396_616_992_488_726 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_15_n3() {
+    let q: [u256; 8] = [
+        920_654_325_665_807_004_907,
+        900_428_040_145_395_110_780,
+        191_686_966_035_677_668_975,
+        0,
+        0,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 3
+    let b: u256 = 156_300_931_203_769_804_158
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 0, 154_557_884_706_150_571_434)
+    assert!(paid >= 99_837_712_765_958_175_061, "buy under exact")
+    assert!(
+        paid - 99_837_712_765_958_175_061 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 0, 487_321_644_008_600_611_736)
+    assert!(back <= 110_292_823_127_003_989_348, "sell over exact")
+    assert!(
+        110_292_823_127_003_989_348 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_16_n4() {
+    let q: [u256; 8] = [
+        7_848_886_449_984_027_365_088,
+        4_725_292_474_794_547_810_106,
+        2_111_491_663_839_418_127_137,
+        965_136_239_943_389_033_959,
+        0,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 4
+    let b: u256 = 275_240_936_905_942_069_016
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 1, 609_525_597_228_822_290_370)
+    assert!(paid >= 26_460_040_553_696_360, "buy under exact")
+    assert!(
+        paid - 26_460_040_553_696_360 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 1, 2_615_309_597_088_136_427_769)
+    assert!(back <= 3_243_784_985_045_674, "sell over exact")
+    assert!(
+        3_243_784_985_045_674 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_17_n5() {
+    let q: [u256; 8] = [
+        5_403_811_089_922_657_104_961,
+        5_719_782_606_609_275_188_918,
+        2_832_213_154_562_855_371_783,
+        3_506_603_066_753_024_421_512,
+        9_918_518_448_237_973_984_568,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 5
+    let b: u256 = 468_423_715_343_481_959_657
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 0, 503_637_675_646_246_783_101)
+    assert!(paid >= 58_942_900_602_620_812, "buy under exact")
+    assert!(
+        paid - 58_942_900_602_620_812 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 0, 3_623_542_445_877_532_434_587)
+    assert!(back <= 30_521_914_821_206_300, "sell over exact")
+    assert!(
+        30_521_914_821_206_300 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_18_n3() {
+    let q: [u256; 8] = [
+        12_584_686_618_012_282_075_425,
+        7_239_599_516_497_579_692_654,
+        11_987_220_814_228_492_440_041,
+        0,
+        0,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 3
+    let b: u256 = 327_208_056_250_899_068_278
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 0, 114_051_158_641_172_729_645)
+    assert!(paid >= 100_412_532_678_673_047_150, "buy under exact")
+    assert!(
+        paid - 100_412_532_678_673_047_150 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 0, 7_442_404_482_087_143_181_546)
+    assert!(back <= 646_329_997_996_521_788_751, "sell over exact")
+    assert!(
+        646_329_997_996_521_788_751 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_19_n2() {
+    let q: [u256; 8] = [
+        5_554_832_851_144_687_398_824,
+        3_596_768_013_270_247_733_150,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 2
+    let b: u256 = 152_115_405_573_612_426_112
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 0, 52_926_764_545_373_963_164)
+    assert!(paid >= 52_926_649_738_055_224_089, "buy under exact")
+    assert!(
+        paid - 52_926_649_738_055_224_089 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 0, 1_580_697_844_134_557_431_773)
+    assert!(back <= 1_568_474_292_197_669_093_779, "sell over exact")
+    assert!(
+        1_568_474_292_197_669_093_779 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_20_n2() {
+    let q: [u256; 8] = [420_255_272_122_129_883_214, 429_166_417_025_810_504_538, 0, 0, 0, 0, 0, 0]
+    let n: usize = 2
+    let b: u256 = 113_656_248_919_863_308_468
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 1, 285_199_422_983_653_133_543)
+    assert!(paid >= 219_027_090_697_563_445_753, "buy under exact")
+    assert!(
+        paid - 219_027_090_697_563_445_753 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 1, 355_952_132_181_816_491_733)
+    assert!(back <= 78_081_906_645_813_818_634, "sell over exact")
+    assert!(
+        78_081_906_645_813_818_634 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_21_n2() {
+    let q: [u256; 8] = [
+        1_414_133_513_791_778_203_162,
+        5_185_996_752_181_757_973_044,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 2
+    let b: u256 = 198_772_324_928_844_012_435
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 1, 196_409_534_486_759_703_016)
+    assert!(paid >= 196_409_533_770_551_802_339, "buy under exact")
+    assert!(
+        paid - 196_409_533_770_551_802_339 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 1, 4_254_832_498_673_859_807_391)
+    assert!(back <= 3_755_087_981_404_007_112_406, "sell over exact")
+    assert!(
+        3_755_087_981_404_007_112_406 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_22_n4() {
+    let q: [u256; 8] = [
+        95_344_302_033_043_688_350,
+        157_582_807_771_560_843_696,
+        191_282_808_393_719_112_418,
+        7_543_644_867_680_145_384,
+        0,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 4
+    let b: u256 = 193_447_340_594_525_747_449
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 3, 453_957_654_961_141_312_132)
+    assert!(paid >= 160_201_105_246_016_244_154, "buy under exact")
+    assert!(
+        paid - 160_201_105_246_016_244_154 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 3, 7_119_289_501_297_831_805)
+    assert!(back <= 955_755_517_450_380_045, "sell over exact")
+    assert!(
+        955_755_517_450_380_045 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_23_n2() {
+    let q: [u256; 8] = [534_517_421_607_036_875_047, 82_972_634_566_222_717_836, 0, 0, 0, 0, 0, 0]
+    let n: usize = 2
+    let b: u256 = 392_949_374_575_102_752_527
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 0, 418_620_941_379_013_432_435)
+    assert!(paid >= 351_174_521_435_633_199_715, "buy under exact")
+    assert!(
+        paid - 351_174_521_435_633_199_715 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 0, 11_556_012_225_938_256_675)
+    assert!(back <= 8_743_844_298_800_666_970, "sell over exact")
+    assert!(
+        8_743_844_298_800_666_970 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_24_n3() {
+    let q: [u256; 8] = [
+        376_059_600_146_382_679_977,
+        146_700_255_061_676_179_084,
+        22_237_152_783_400_837_762,
+        0,
+        0,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 3
+    let b: u256 = 418_399_714_300_326_812_728
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 1, 83_502_059_264_205_528_762)
+    assert!(paid >= 25_799_816_984_694_452_034, "buy under exact")
+    assert!(
+        paid - 25_799_816_984_694_452_034 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 1, 85_408_760_026_335_700_959)
+    assert!(back <= 22_859_137_105_174_136_822, "sell over exact")
+    assert!(
+        22_859_137_105_174_136_822 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_25_n6() {
+    let q: [u256; 8] = [
+        2_019_954_775_887_195_319_189,
+        253_975_574_725_137_273_569,
+        1_473_201_387_209_460_914_207,
+        1_052_758_587_941_201_136_758,
+        1_431_996_208_385_438_369_508,
+        304_201_625_136_628_219_883,
+        0,
+        0,
+    ]
+    let n: usize = 6
+    let b: u256 = 283_343_290_531_902_320_560
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 2, 710_345_390_295_620_177_672)
+    assert!(paid >= 229_883_327_924_464_817_108, "buy under exact")
+    assert!(
+        paid - 229_883_327_924_464_817_108 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 2, 419_495_057_536_623_233_291)
+    assert!(back <= 25_403_027_216_236_519_325, "sell over exact")
+    assert!(
+        25_403_027_216_236_519_325 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_26_n5() {
+    let q: [u256; 8] = [
+        4_816_504_535_115_763_671_938,
+        3_217_158_158_505_605_130_013,
+        2_999_833_397_673_302_740_805,
+        2_591_384_267_203_898_994_291,
+        3_448_170_491_998_373_647_016,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 5
+    let b: u256 = 141_562_484_191_397_617_370
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 0, 51_284_751_408_364_937_601)
+    assert!(paid >= 51_281_368_909_595_856_577, "buy under exact")
+    assert!(
+        paid - 51_281_368_909_595_856_577 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 0, 1_042_102_284_493_395_246_727)
+    assert!(back <= 1_025_595_108_516_560_237_847, "sell over exact")
+    assert!(
+        1_025_595_108_516_560_237_847 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_27_n3() {
+    let q: [u256; 8] = [
+        250_669_645_992_535_679_953,
+        281_927_600_443_635_586_836,
+        152_918_173_631_887_412_373,
+        0,
+        0,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 3
+    let b: u256 = 306_749_782_380_648_345_760
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 0, 460_998_618_695_988_407_719)
+    assert!(paid >= 246_410_358_516_131_951_314, "buy under exact")
+    assert!(
+        paid - 246_410_358_516_131_951_314 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 0, 40_630_119_694_249_407_608)
+    assert!(back <= 13_728_597_858_829_236_970, "sell over exact")
+    assert!(
+        13_728_597_858_829_236_970 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_28_n3() {
+    let q: [u256; 8] = [
+        649_755_529_521_117_476_390,
+        480_204_253_246_122_074_984,
+        78_796_152_793_339_103_558,
+        0,
+        0,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 3
+    let b: u256 = 283_621_304_602_676_499_670
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 2, 713_470_909_859_959_645_299)
+    assert!(paid >= 182_397_630_038_504_187_294, "buy under exact")
+    assert!(
+        paid - 182_397_630_038_504_187_294 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 2, 42_710_613_120_807_542_709)
+    assert!(back <= 3_163_364_308_235_012_875, "sell over exact")
+    assert!(
+        3_163_364_308_235_012_875 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_29_n3() {
+    let q: [u256; 8] = [
+        176_051_323_860_635_237_936,
+        185_977_911_985_979_609_160,
+        140_793_923_729_953_521_813,
+        0,
+        0,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 3
+    let b: u256 = 286_017_959_618_021_455_645
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 2, 241_764_895_503_826_216_422)
+    assert!(paid >= 96_712_797_519_566_748_211, "buy under exact")
+    assert!(
+        paid - 96_712_797_519_566_748_211 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 2, 138_867_833_103_699_639_488)
+    assert!(back <= 35_417_770_714_677_962_644, "sell over exact")
+    assert!(
+        35_417_770_714_677_962_644 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_30_n4() {
+    let q: [u256; 8] = [
+        242_588_941_679_947_495_777,
+        254_210_200_938_694_409_899,
+        61_362_374_189_744_434_923,
+        196_921_230_077_031_939_003,
+        0,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 4
+    let b: u256 = 15_793_316_359_624_373_236
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 0, 7_751_832_447_100_582_242)
+    assert!(paid >= 2_900_919_879_113_564_337, "buy under exact")
+    assert!(
+        paid - 2_900_919_879_113_564_337 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 0, 111_111_175_228_239_857_257)
+    assert!(back <= 6_042_551_411_973_412_676, "sell over exact")
+    assert!(
+        6_042_551_411_973_412_676 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_31_n2() {
+    let q: [u256; 8] = [223_438_490_107_262_262_321, 241_622_283_919_276_497_058, 0, 0, 0, 0, 0, 0]
+    let n: usize = 2
+    let b: u256 = 6_113_589_717_949_639_753
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 0, 4_301_212_716_548_390_057)
+    assert!(paid >= 296_045_579_990_379_393, "buy under exact")
+    assert!(
+        paid - 296_045_579_990_379_393 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 0, 41_397_005_160_757_472_865)
+    assert!(back <= 304_221_639_405_370_464, "sell over exact")
+    assert!(
+        304_221_639_405_370_464 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_32_n8() {
+    let q: [u256; 8] = [
+        108_509_824_505_130_551_159,
+        979_768_522_100_302_434_382,
+        867_290_888_878_148_005_303,
+        290_935_471_391_301_548_006,
+        841_224_859_807_528_943_148,
+        229_790_135_235_193_020_401,
+        367_772_955_155_300_343_757,
+        992_291_632_915_938_576_848,
+    ]
+    let n: usize = 8
+    let b: u256 = 353_321_524_640_440_613_064
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 1, 693_864_799_601_063_493_356)
+    assert!(paid >= 330_183_325_891_341_685_649, "buy under exact")
+    assert!(
+        paid - 330_183_325_891_341_685_649 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 1, 304_193_470_796_422_975_255)
+    assert!(back <= 55_621_901_407_124_291_274, "sell over exact")
+    assert!(
+        55_621_901_407_124_291_274 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_33_n7() {
+    let q: [u256; 8] = [
+        417_586_383_898_207_623_639,
+        442_313_366_131_167_855_866,
+        35_757_534_498_817_004_685,
+        185_704_313_353_150_132_383,
+        59_102_564_753_162_695_448,
+        361_017_787_772_998_609_867,
+        387_022_216_621_375_912_349,
+        0,
+    ]
+    let n: usize = 7
+    let b: u256 = 152_350_338_556_801_022_288
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 6, 44_317_045_767_637_873_711)
+    assert!(paid >= 9_982_935_577_908_751_956, "buy under exact")
+    assert!(
+        paid - 9_982_935_577_908_751_956 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 6, 52_796_690_866_444_485_100)
+    assert!(back <= 9_223_680_756_088_996_620, "sell over exact")
+    assert!(
+        9_223_680_756_088_996_620 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_34_n6() {
+    let q: [u256; 8] = [
+        8_089_821_908_238_065_245_174,
+        9_032_346_683_729_618_680_284,
+        3_632_311_931_310_868_668_920,
+        9_510_628_284_024_591_410_413,
+        4_949_747_518_755_387_123_622,
+        6_316_952_596_239_320_329_598,
+        0,
+        0,
+    ]
+    let n: usize = 6
+    let b: u256 = 272_185_225_730_747_651_177
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 0, 159_897_729_108_368_200_472)
+    assert!(paid >= 997_006_074_371_383_915, "buy under exact")
+    assert!(
+        paid - 997_006_074_371_383_915 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 0, 1_540_724_102_757_876_945_486)
+    assert!(back <= 1_247_971_008_813_622_175, "sell over exact")
+    assert!(
+        1_247_971_008_813_622_175 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_35_n3() {
+    let q: [u256; 8] = [
+        500_970_794_524_882_141_481,
+        321_999_316_552_117_052_885,
+        215_982_920_567_178_515_964,
+        0,
+        0,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 3
+    let b: u256 = 178_224_075_547_667_183_732
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 1, 267_269_866_806_488_756_015)
+    assert!(paid >= 106_023_867_128_039_586_940, "buy under exact")
+    assert!(
+        paid - 106_023_867_128_039_586_940 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 1, 159_882_535_228_673_178_767)
+    assert!(back <= 26_534_763_725_753_302_813, "sell over exact")
+    assert!(
+        26_534_763_725_753_302_813 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_36_n2() {
+    let q: [u256; 8] = [
+        2_815_045_443_639_600_237_143,
+        286_491_609_849_336_127_287,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 2
+    let b: u256 = 238_281_859_535_508_853_242
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 0, 168_959_937_473_990_861_281)
+    assert!(paid >= 168_956_956_904_495_836_148, "buy under exact")
+    assert!(
+        paid - 168_956_956_904_495_836_148 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 0, 2_728_531_505_996_196_418_819)
+    assert!(back <= 2_442_993_499_225_413_869_432, "sell over exact")
+    assert!(
+        2_442_993_499_225_413_869_432 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_37_n2() {
+    let q: [u256; 8] = [33_941_662_772_171_377_573, 72_695_929_815_038_445_878, 0, 0, 0, 0, 0, 0]
+    let n: usize = 2
+    let b: u256 = 118_773_195_525_942_200_995
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 0, 114_123_877_327_695_586_602)
+    assert!(paid >= 61_368_964_342_351_064_591, "buy under exact")
+    assert!(
+        paid - 61_368_964_342_351_064_591 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 0, 5_287_497_435_128_306_965)
+    assert!(back <= 2_187_640_311_680_340_784, "sell over exact")
+    assert!(
+        2_187_640_311_680_340_784 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_38_n4() {
+    let q: [u256; 8] = [
+        576_036_301_183_095_553_952,
+        635_634_669_526_543_596_863,
+        375_883_199_662_811_345_319,
+        359_574_628_406_028_563_710,
+        0,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 4
+    let b: u256 = 243_108_534_218_803_876_248
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 1, 12_062_991_526_010_794_097)
+    assert!(paid >= 5_001_490_234_827_372_979, "buy under exact")
+    assert!(
+        paid - 5_001_490_234_827_372_979 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 1, 118_836_496_062_491_693_518)
+    assert!(back <= 41_804_648_067_275_132_867, "sell over exact")
+    assert!(
+        41_804_648_067_275_132_867 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
+
+#[test]
+fn prop_39_n3() {
+    let q: [u256; 8] = [
+        472_240_790_051_986_930_945,
+        45_110_713_275_111_654_224,
+        209_351_243_171_133_481_261,
+        0,
+        0,
+        0,
+        0,
+        0,
+    ]
+    let n: usize = 3
+    let b: u256 = 270_971_724_971_308_794_042
+    let tol: u256 = cost_err_n(b, n)
+    let paid: u256 = lmsr_buy_cost_n(q, n, b, 2, 187_765_658_028_199_132_687)
+    assert!(paid >= 58_051_175_450_215_916_097, "buy under exact")
+    assert!(
+        paid - 58_051_175_450_215_916_097 <= 2 * tol + 1,
+        "buy over budget",
+    )
+    let back: u256 = lmsr_sell_payout_n(q, n, b, 2, 111_825_543_224_454_441_785)
+    assert!(back <= 22_834_847_496_607_662_401, "sell over exact")
+    assert!(
+        22_834_847_496_607_662_401 - back <= 2 * tol + 1,
+        "sell under budget",
+    )
+}
