@@ -132,8 +132,7 @@ fe build          # writes out/Market.{bin,runtime.bin,abi.json} (and the test-o
 python3 scripts/vectors.py && fe fmt && fe test
 ```
 
-CI (`.github/workflows/ci.yml`) runs `fe fmt --check`, `fe test` and
-`fe build` with Fe 26.5.0.
+Checks: `fe fmt --check`, `fe test` and `fe build` with Fe 26.5.0.
 
 ## Demo
 
