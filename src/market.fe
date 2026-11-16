@@ -1,0 +1,247 @@
+// lmsr-fe M2: a minimal on-chain LMSR prediction market.
+//
+// One contract = one market with 2..=8 mutually exclusive outcomes, priced by
+// the library's N-outcome LMSR. Collateral is native ETH; one whole share
+// (1e18 share units) pays out 1 ETH (1e18 wei) if its outcome wins, so the
+// library's WAD amounts are wei directly.
+//
+// Solvency: the creator locks lmsr_max_loss(b, n) >= b * ln(n) at deploy.
+// Every buy charges at least the exact LMSR cost difference and every sell
+// pays at most it, so the contract balance always covers the winning
+// outcome's outstanding shares (LMSR's bounded-loss property).
+
+use std::evm::StorageMap
+use ingot::{lmsr_max_loss, lmsr_buy_cost_n, lmsr_sell_payout_n, lmsr_price_n}
+
+pub const MAX_OUTCOMES: u256 = 8
+
+pub msg MarketMsg {
+    #[selector = sol("buy(uint256,uint256,address)")]
+    Buy { outcome: u256, amount: u256, refund_to: Address } -> u256,
+    #[selector = sol("sell(uint256,uint256,address)")]
+    Sell { outcome: u256, amount: u256, to: Address } -> u256,
+    #[selector = sol("quoteBuy(uint256,uint256)")]
+    QuoteBuy { outcome: u256, amount: u256 } -> u256,
+    #[selector = sol("quoteSell(uint256,uint256)")]
+    QuoteSell { outcome: u256, amount: u256 } -> u256,
+    #[selector = sol("price(uint256)")]
+    Price { outcome: u256 } -> u256,
+    #[selector = sol("sharesOf(address,uint256)")]
+    SharesOf { owner: Address, outcome: u256 } -> u256,
+    #[selector = sol("outstanding(uint256)")]
+    Outstanding { outcome: u256 } -> u256,
+    #[selector = sol("resolve(uint256)")]
+    Resolve { outcome: u256 } -> u256,
+    #[selector = sol("redeem(address)")]
+    Redeem { to: Address } -> u256,
+    #[selector = sol("sweep(address)")]
+    Sweep { to: Address } -> u256,
+}
+
+#[event]
+pub struct Traded {
+    #[indexed]
+    trader: Address,
+    outcome: u256,
+    amount: u256,
+    collateral: u256,
+    is_buy: bool,
+}
+
+#[event]
+pub struct Resolved { outcome: u256 }
+
+/// Outstanding shares of every outcome, as the library's fixed-capacity array.
+fn book(_ q: StorageMap<u256, u256>) -> [u256; 8] {
+    var arr: [u256; 8] = [0, 0, 0, 0, 0, 0, 0, 0]
+    var i: usize = 0
+    while i < 8 {
+        arr[i] = q.get(key: i as u256)
+        i += 1
+    }
+    arr
+}
+
+pub contract Market uses (ctx: Ctx, call: mut Call, log: mut Log) {
+    creator: Address,
+    liquidity: u256,
+    outcomes: u256,
+    mut q: StorageMap<u256, u256>,
+    mut shares: StorageMap<(Address, u256), u256>,
+    mut resolved: bool,
+    mut winner: u256,
+
+    /// Deploy a market with liquidity parameter `b` (WAD) and `n` outcomes.
+    /// The deployer must send at least lmsr_max_loss(b, n) wei as subsidy.
+    #[payable]
+    init(b: u256, n: u256)
+    uses (ctx, mut creator, mut liquidity, mut outcomes)
+    {
+        assert!(n >= 2 && n <= MAX_OUTCOMES, "outcomes must be 2..=8")
+        assert!(b > 0, "liquidity must be positive")
+        assert!(
+            ctx.value().as_wei() >= lmsr_max_loss(b, n as usize),
+            "subsidy below b*ln(n)",
+        )
+        creator = ctx.caller()
+        liquidity = b
+        outcomes = n
+    }
+
+    recv MarketMsg {
+        #[payable]
+        Buy { outcome, amount, refund_to } -> u256
+        uses (ctx, mut call, mut log, liquidity, outcomes, mut q, mut shares, resolved)
+        {
+            assert!(!resolved, "market resolved")
+            assert!(outcome < outcomes, "bad outcome")
+            assert!(amount > 0, "zero amount")
+            let cost = lmsr_buy_cost_n(
+                book(q),
+                outcomes as usize,
+                liquidity,
+                outcome as usize,
+                amount,
+            )
+            let paid = ctx.value().as_wei()
+            assert!(paid >= cost, "insufficient payment")
+            let trader = ctx.caller()
+            q.set(key: outcome, value: q.get(key: outcome) + amount)
+            shares.set(
+                    key: (trader, outcome),
+                    value: shares.get(key: (trader, outcome)) + amount,
+                )
+            log.emit(
+                Traded { trader, outcome, amount, collateral: cost, is_buy: true },
+            )
+            // State is final before the refund, so reentry sees the new book.
+            if paid > cost {
+                assert!(
+                    call.send_value(addr: refund_to, gas: 0, value: std::evm::wei(paid - cost))
+                        .success(),
+                    "refund failed",
+                )
+            }
+            cost
+        }
+
+        Sell { outcome, amount, to } -> u256 uses (
+            ctx,
+            mut call,
+            mut log,
+            liquidity,
+            outcomes,
+            mut q,
+            mut shares,
+            resolved,
+        ) {
+            assert!(!resolved, "market resolved")
+            assert!(outcome < outcomes, "bad outcome")
+            let trader = ctx.caller()
+            let held = shares.get(key: (trader, outcome))
+            assert!(amount > 0 && amount <= held, "not enough shares")
+            let payout = lmsr_sell_payout_n(
+                book(q),
+                outcomes as usize,
+                liquidity,
+                outcome as usize,
+                amount,
+            )
+            q.set(key: outcome, value: q.get(key: outcome) - amount)
+            shares.set(key: (trader, outcome), value: held - amount)
+            log.emit(
+                Traded { trader, outcome, amount, collateral: payout, is_buy: false },
+            )
+            if payout > 0 {
+                assert!(
+                    call.send_value(addr: to, gas: 0, value: std::evm::wei(payout)).success(),
+                    "transfer failed",
+                )
+            }
+            payout
+        }
+
+        QuoteBuy { outcome, amount } -> u256 uses (liquidity, outcomes, q) {
+            assert!(outcome < outcomes, "bad outcome")
+            lmsr_buy_cost_n(
+                book(q),
+                outcomes as usize,
+                liquidity,
+                outcome as usize,
+                amount,
+            )
+        }
+
+        QuoteSell { outcome, amount } -> u256 uses (liquidity, outcomes, q) {
+            assert!(outcome < outcomes, "bad outcome")
+            lmsr_sell_payout_n(
+                book(q),
+                outcomes as usize,
+                liquidity,
+                outcome as usize,
+                amount,
+            )
+        }
+
+        Price { outcome } -> u256 uses (liquidity, outcomes, q) {
+            assert!(outcome < outcomes, "bad outcome")
+            lmsr_price_n(book(q), outcomes as usize, liquidity, outcome as usize)
+        }
+
+        SharesOf { owner, outcome } -> u256 uses (shares) {
+            shares.get(key: (owner, outcome))
+        }
+
+        Outstanding { outcome } -> u256 uses (q) {
+            q.get(key: outcome)
+        }
+
+        /// The creator acts as the oracle (trusted resolver) in this minimal version.
+        Resolve { outcome } -> u256 uses (
+            ctx,
+            mut log,
+            creator,
+            outcomes,
+            mut resolved,
+            mut winner,
+        ) {
+            assert!(ctx.caller() == creator, "only creator")
+            assert!(!resolved, "already resolved")
+            assert!(outcome < outcomes, "bad outcome")
+            resolved = true
+            winner = outcome
+            log.emit(Resolved { outcome })
+            outcome
+        }
+
+        /// Pay the caller's winning shares out to `to`, 1 wei per share unit.
+        Redeem { to } -> u256 uses (ctx, mut call, mut q, mut shares, resolved, winner) {
+            assert!(resolved, "not resolved")
+            let owner = ctx.caller()
+            let amount = shares.get(key: (owner, winner))
+            assert!(amount > 0, "nothing to redeem")
+            shares.set(key: (owner, winner), value: 0)
+            q.set(key: winner, value: q.get(key: winner) - amount)
+            assert!(
+                call.send_value(addr: to, gas: 0, value: std::evm::wei(amount)).success(),
+                "transfer failed",
+            )
+            amount
+        }
+
+        /// After resolution the creator takes back whatever exceeds the
+        /// still-unredeemed winning shares.
+        Sweep { to } -> u256 uses (ctx, mut call, creator, q, resolved, winner) {
+            assert!(resolved, "not resolved")
+            assert!(ctx.caller() == creator, "only creator")
+            let free = ctx.selfbalance().as_wei() - q.get(key: winner)
+            if free > 0 {
+                assert!(
+                    call.send_value(addr: to, gas: 0, value: std::evm::wei(free)).success(),
+                    "transfer failed",
+                )
+            }
+            free
+        }
+    }
+}
