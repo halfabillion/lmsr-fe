@@ -152,3 +152,98 @@ pub fn lmsr_sell1_payout(_ q1: u256, _ q2: u256, _ b: u256, _ amount: u256) -> u
         cost_err(b),
     )
 }
+
+// ---------------------------------------------------------------------------
+// N-outcome LMSR (M2). Log-sum-exp with a max shift:
+//   C(q) = m + b * ln( sum_i exp(-(m - q_i) / b) ),   m = max_i q_i
+// Every exponent is <= 0, so exp_neg_wad never overflows, and the sum is in
+// [1, n] (the max term is exactly 1), so ln_wad always sees an argument >= 1.
+// Functions take a fixed-size array plus `n`, the number of live outcomes
+// (2 <= n <= N); entries at index >= n are ignored. This lets a contract keep
+// one storage layout for any outcome count up to its capacity.
+// ---------------------------------------------------------------------------
+
+/// Error budget for an n-outcome cost evaluation: each of the n exp terms and
+/// the final ln contribute a few wei per 1.0 of b.
+pub fn cost_err_n(_ b: u256, _ n: usize) -> u256 {
+    let k: u256 = COST_ERR_PER_B * (n as u256)
+    wad_mul_up(b, k) + k
+}
+
+fn max_n<const N: usize>(_ q: [u256; N], _ n: usize) -> u256 {
+    assert!(n >= 2 && n <= N)
+    var m: u256 = 0
+    var i: usize = 0
+    while i < n {
+        if q[i] > m { m = q[i] }
+        i += 1
+    }
+    m
+}
+
+/// sum_i exp(-(m - q_i) / b) in WAD (>= WAD), together with the shift m.
+fn sum_exp_n<const N: usize>(_ q: [u256; N], _ n: usize, _ b: u256) -> (u256, u256) {
+    let m: u256 = max_n(q, n)
+    var s: u256 = 0
+    var i: usize = 0
+    while i < n {
+        s += exp_neg_wad(mul_div(m - q[i], WAD, b))
+        i += 1
+    }
+    (m, s)
+}
+
+/// N-outcome LMSR cost function C(q) with liquidity b (all WAD), rounded down.
+pub fn lmsr_cost_n<const N: usize>(_ q: [u256; N], _ n: usize, _ b: u256) -> u256 {
+    let (m, s) = sum_exp_n(q, n, b)
+    m + wad_mul_down(b, ln_wad(s))
+}
+
+/// Instantaneous price of outcome `i` (WAD probability), rounded down, so the
+/// n prices sum to at most 1.0 and to within n wei of it.
+pub fn lmsr_price_n<const N: usize>(_ q: [u256; N], _ n: usize, _ b: u256, _ i: usize) -> u256 {
+    assert!(i < n)
+    let (m, s) = sum_exp_n(q, n, b)
+    mul_div(exp_neg_wad(mul_div(m - q[i], WAD, b)), WAD, s)
+}
+
+/// Collateral to buy `amount` shares of outcome `i`, rounded in the maker's
+/// favour (computed cost difference plus cost_err_n).
+pub fn lmsr_buy_cost_n<const N: usize>(
+    _ q: [u256; N],
+    _ n: usize,
+    _ b: u256,
+    _ i: usize,
+    _ amount: u256,
+) -> u256 {
+    assert!(i < n)
+    var after = q
+    after[i] = q[i] + amount
+    sat_sub(lmsr_cost_n(after, n, b), lmsr_cost_n(q, n, b)) + cost_err_n(b, n)
+}
+
+/// Collateral paid for selling `amount` shares of outcome `i` back, rounded in
+/// the maker's favour (computed difference minus cost_err_n, floored at 0).
+/// Reverts if amount > q[i].
+pub fn lmsr_sell_payout_n<const N: usize>(
+    _ q: [u256; N],
+    _ n: usize,
+    _ b: u256,
+    _ i: usize,
+    _ amount: u256,
+) -> u256 {
+    assert!(i < n)
+    assert!(amount <= q[i])
+    var after = q
+    after[i] = q[i] - amount
+    sat_sub(
+        sat_sub(lmsr_cost_n(q, n, b), lmsr_cost_n(after, n, b)),
+        cost_err_n(b, n),
+    )
+}
+
+/// Subsidy the market creator must lock so the maker is always solvent:
+/// worst-case loss b * ln(n), rounded up, plus the cost error budget.
+pub fn lmsr_max_loss(_ b: u256, _ n: usize) -> u256 {
+    wad_mul_up(b, ln_wad((n as u256) * WAD) + 1) + cost_err_n(b, n)
+}

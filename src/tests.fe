@@ -12,6 +12,10 @@ use ingot::{
     lmsr_buy1_cost,
     lmsr_sell1_payout,
     cost_err,
+    cost_err_n,
+    lmsr_cost_n,
+    lmsr_price_n,
+    lmsr_max_loss,
 }
 
 #[test]
@@ -206,4 +210,59 @@ fn lmsr_prices_sum_to_one_after_trades() {
     let p1: u256 = lmsr_price1(375 * WAD, 40 * WAD, b)
     let p2: u256 = lmsr_price1(40 * WAD, 375 * WAD, b)
     assert!(near(p1 + p2, WAD, 2))
+}
+
+#[test]
+fn n_outcome_matches_binary() {
+    let b: u256 = 100 * WAD
+    let q: [u256; 2] = [250 * WAD, 10 * WAD]
+    assert!(
+        near(
+            lmsr_cost_n(q, 2, b),
+            lmsr_cost(250 * WAD, 10 * WAD, b),
+            cost_err_n(b, 2),
+        ),
+    )
+    assert!(
+        near(
+            lmsr_price_n(q, 2, b, 0),
+            lmsr_price1(250 * WAD, 10 * WAD, b),
+            2,
+        ),
+    )
+}
+
+#[test]
+fn n_outcome_ignores_unused_slots() {
+    let b: u256 = 100 * WAD
+    let a: [u256; 3] = [40 * WAD, 0, 7 * WAD]
+    let c: [u256; 6] = [40 * WAD, 0, 7 * WAD, 999 * WAD, 1, 5 * WAD]
+    assert!(lmsr_cost_n(a, 3, b) == lmsr_cost_n(c, 3, b))
+    assert!(lmsr_price_n(a, 3, b, 2) == lmsr_price_n(c, 3, b, 2))
+}
+
+#[test]
+fn max_loss_covers_b_ln_n() {
+    // b * ln(n) for b = 100: n = 2 -> 69.314718055994530941, n = 4 -> 138.629436111989061883
+    let b: u256 = 100 * WAD
+    assert!(lmsr_max_loss(b, 2) > 69_314_718_055_994_530_941)
+    assert!(lmsr_max_loss(b, 4) > 138_629_436_111_989_061_883)
+    assert!(
+        lmsr_max_loss(b, 4) - 138_629_436_111_989_061_883 <= 2 * cost_err_n(b, 4),
+    )
+    // Initial cost of an empty book is b * ln(n): the maker's worst case.
+    let empty: [u256; 4] = [0, 0, 0, 0]
+    assert!(lmsr_cost_n(empty, 4, b) <= lmsr_max_loss(b, 4))
+}
+
+#[test(should_revert)]
+fn n_outcome_rejects_n_above_capacity() {
+    let q: [u256; 3] = [0, 0, 0]
+    let _ = lmsr_cost_n(q, 4, 100 * WAD)
+}
+
+#[test(should_revert)]
+fn n_outcome_rejects_single_outcome() {
+    let q: [u256; 3] = [0, 0, 0]
+    let _ = lmsr_cost_n(q, 1, 100 * WAD)
 }
