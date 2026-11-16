@@ -14,7 +14,11 @@ Submission form: https://docs.google.com/forms/d/e/1FAIpQLSd2pqUkJzFpZMu5FVQP-Nt
   rounding; N-outcome LMSR (log-sum-exp with max shift), Python-generated
   vectors; `Market` contract (buy/sell/quote/price/resolve/redeem/sweep);
   35 tests green; `fe build` OK.
-- M3 (to do): see below.
+- M3 (ec4fc30, 81c357d, 10f5fee, 2142089 + docs): resolve-by deadline and
+  cancel path with net-collateral refunds (pro-rata if short) and a reserve-
+  keeping sweep, 11 cancel tests with a Trader proxy; 40 seeded-random
+  property vectors plus 3 random contract trade sequences; gas probe at
+  n = 2, 4, 8. 90 tests green; `fe build` OK.
 
 ## Checklist for the form
 
@@ -31,14 +35,16 @@ Submission form: https://docs.google.com/forms/d/e/1FAIpQLSd2pqUkJzFpZMu5FVQP-Nt
 
 ## M3 ideas (priority order)
 
-1. Gas measurement for buy/sell at n = 2, 4, 8, plus cheap optimisations
-   (cache `exp` terms between the two cost evaluations).
-2. Property-style tests: many random books and amounts from
-   scripts/vectors.py, checking that buy >= exact and sell <= exact, and that
-   the contract balance stays >= max outstanding shares after random trade
-   sequences.
-3. Resolution timeout / cancel path (refund at last prices), so a missing
-   resolver can't lock funds.
+1. [x] Gas measurement for buy/sell at n = 2, 4, 8 (2142089; README "Gas").
+   [ ] Cheap optimisations (share the `exp` terms between the two cost
+   evaluations) are still open.
+2. [x] Property-style tests (10f5fee): 40 seeded-random books/amounts checking
+   buy >= exact and sell <= exact; 3 random trade sequences checking balance
+   >= max outstanding after each step.
+3. [x] Resolution timeout / cancel path (ec4fc30). Refunds are net collateral
+   paid (pro-rata if short) rather than at the last prices, which could be
+   gamed by pushing the price just before cancel. The solvency argument is in
+   the README.
 4. Optional ERC-20 collateral.
 5. Demo recording, then publish the repo and submit.
 
