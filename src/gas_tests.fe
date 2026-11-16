@@ -1,0 +1,67 @@
+// M3 gas probe. `fe test` has no gas report, so this test reads the GAS
+// opcode around each call (cost includes the CALL overhead, cold access and,
+// for buys, the value transfer) and emits one GasUsed event per measurement.
+// Read them with: fe test -f gas_ --show-logs
+// The only assertion is a loose ceiling, so the numbers are informational.
+
+use ingot::market::{Market, MarketMsg}
+use ingot::{WAD, lmsr_max_loss}
+use std::evm::{ether, wei}
+
+const B: u256 = 10_000_000_000_000_000_000
+const FAR: u256 = 4_000_000_000
+
+#[event]
+pub struct GasUsed { n: u256, is_buy: bool, gas: u256 }
+
+fn measure(_ n: u256, _ salt: u256) uses (evm: mut Evm) {
+    let m = evm.create2<Market>(
+            value: wei(lmsr_max_loss(B, n as usize)),
+            args: (B, n, FAR),
+            salt,
+        )
+    // Warm-up trade so the measured buy and sell touch already-written slots
+    // the same way a typical later trade does.
+    let _: u256 = evm
+        .call(
+            addr: m,
+            gas: 3000000,
+            value: ether(100),
+            message: MarketMsg::Buy {
+                outcome: 1,
+                amount: 2 * WAD,
+                refund_to: Address::new(0xbeef),
+            },
+        )
+    let g0 = evm.gas()
+    let _: u256 = evm
+        .call(
+            addr: m,
+            gas: 3000000,
+            value: ether(100),
+            message: MarketMsg::Buy {
+                outcome: 0,
+                amount: 5 * WAD,
+                refund_to: Address::new(0xbeef),
+            },
+        )
+    let g1 = evm.gas()
+    let _: u256 = evm
+        .call(
+            addr: m,
+            gas: 3000000,
+            value: Wei::zero(),
+            message: MarketMsg::Sell { outcome: 0, amount: 2 * WAD, to: Address::new(0xbeef) },
+        )
+    let g2 = evm.gas()
+    evm.emit(GasUsed { n, is_buy: true, gas: g0 - g1 })
+    evm.emit(GasUsed { n, is_buy: false, gas: g1 - g2 })
+    assert!(g0 - g1 < 1_000_000 && g1 - g2 < 1_000_000)
+}
+
+#[test(balance = 1_000_000_000_000_000_000_000_000)]
+fn gas_buy_sell_n2_n4_n8() uses (evm: mut Evm) {
+    measure(2, 1)
+    measure(4, 2)
+    measure(8, 3)
+}
