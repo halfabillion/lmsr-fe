@@ -5,8 +5,8 @@ written in Fe: a reusable WAD fixed-point `exp`/`ln` library, an N-outcome
 LMSR whose rounding never lets the market maker lose money to dust, and a
 minimal on-chain market contract built on it.
 
-> Status: work in progress for the [Fe Builders Challenge](https://fe-lang.org/contest/)
-> (build window 3-24 Nov 2026). Milestones M2 and M3 (cancel path, property tests, gas probe) are done; see [Limitations](#limitations).
+> Status: local package is submission-ready for the [Fe Builders Challenge](https://fe-lang.org/contest/)
+> (build window 3-24 Nov 2026; closes 24 Nov 23:59 UTC). Milestones M2 and M3 are done, including a cheap gas tweak that reuses untouched `exp` terms when a trade does not move the book max. Publishing the GitHub repo update and submitting the form still need Ali's OK; see [Limitations](#limitations).
 
 ## The problem
 
@@ -152,14 +152,16 @@ buys, the ETH value transfer and the refund of the excess:
 
 | n | buy | sell |
 | --- | --- | --- |
-| 2 | ~100.6k | ~72.0k |
-| 4 | ~122.1k | ~93.5k |
-| 8 | ~169.7k | ~142.0k |
+| 2 | ~100.7k | ~72.2k |
+| 4 | ~122.1k | ~93.7k |
+| 8 | ~169.7k | ~142.1k |
 
-Cost grows by roughly 12k gas per extra outcome, because each trade evaluates
-`C` twice (2n `exp` plus 2 `ln`) and reads the 8-slot book. The obvious next
-optimisation is to share the `exp` terms of untouched outcomes between the two
-`C` evaluations.
+Cost grows by roughly 12k gas per extra outcome, because a trade that moves
+the book max still evaluates `C` twice (2n `exp` plus 2 `ln`) and reads the
+8-slot book. The table above is that case (the probe buys an outcome that
+becomes the new max, then sells it). When the max is unchanged, buy and sell
+reuse the `exp` terms of untouched outcomes and recompute only the touched
+term, which is algebraically the same `C` as a fresh evaluation.
 
 ## Limitations
 
@@ -185,7 +187,7 @@ optimisation is to share the `exp` terms of untouched outcomes between the two
   error bounds are checked against high-precision vectors, not machine-proved.
   `COST_ERR_PER_B = 64` wei per outcome per 1.0 of `b` is well above the
   observed error.
-- **Gas** is measured (see [Gas](#gas)) but not optimised.
+- **Gas** is measured (see [Gas](#gas)). Untouched `exp` terms are shared when a trade does not move the book max; a trade that changes the max still pays for two full evaluations, which is what the table reports.
 - **Test-only `Trader` proxy** lives in `src/cancel_tests.fe` and is also
   emitted by `fe build`. It is not part of the deployable market.
 - **Not audited.** This is a contest prototype; do not use it with real funds.

@@ -24,7 +24,9 @@ Submission form: https://docs.google.com/forms/d/e/1FAIpQLSd2pqUkJzFpZMu5FVQP-Nt
 
 - [ ] Public GitHub repo with OSI license (Apache-2.0 is in place). Not yet
       published; needs Ali's OK and his GitHub account.
-- [ ] Full commit SHA to review: fill in after the final commit.
+- [x] Form answers drafted in `docs/FORM_ANSWERS_DRAFT.md` (not submitted).
+- [ ] Full commit SHA to review: fill in after the final commit Ali approves
+      to push; a placeholder is in the form-answers draft.
 - [x] `fe.toml` + exact Fe version: fe 26.5.0 (3dab95f).
 - [x] Reproducible build/test instructions and automated tests (README).
 - [x] README: problem, approach, architecture, limitations.
@@ -37,8 +39,10 @@ Submission form: https://docs.google.com/forms/d/e/1FAIpQLSd2pqUkJzFpZMu5FVQP-Nt
 ## M3 ideas (priority order)
 
 1. [x] Gas measurement for buy/sell at n = 2, 4, 8 (2142089; README "Gas").
-   [ ] Cheap optimisations (share the `exp` terms between the two cost
-   evaluations) are still open.
+   [x] Cheap optimisation (share the `exp` terms of untouched outcomes
+   between the two cost evaluations when the book max is unchanged). 90 tests
+   still green. The published gas table is the max-moving case and is essentially
+   unchanged.
 2. [x] Property-style tests (10f5fee): 40 seeded-random books/amounts checking
    buy >= exact and sell <= exact; 3 random trade sequences checking balance
    >= max outstanding after each step.

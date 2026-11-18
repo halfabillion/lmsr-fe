@@ -207,8 +207,33 @@ pub fn lmsr_price_n<const N: usize>(_ q: [u256; N], _ n: usize, _ b: u256, _ i: 
     mul_div(exp_neg_wad(mul_div(m - q[i], WAD, b)), WAD, s)
 }
 
+/// C(q) after changing outcome `i` to `new_qi`, reusing the already-computed
+/// (m0, s0) of `q` when the max is unchanged. Only the touched exp term is
+/// recomputed in that case; if the max moves, every term is evaluated fresh.
+/// The result is the same as `lmsr_cost_n` of the updated book.
+fn cost_after_n<const N: usize>(
+    _ q: [u256; N],
+    _ n: usize,
+    _ b: u256,
+    _ i: usize,
+    _ new_qi: u256,
+    _ m0: u256,
+    _ s0: u256,
+) -> u256 {
+    if new_qi <= m0 && (q[i] < m0 || new_qi == m0) {
+        let old_term: u256 = exp_neg_wad(mul_div(m0 - q[i], WAD, b))
+        let new_term: u256 = exp_neg_wad(mul_div(m0 - new_qi, WAD, b))
+        let s1: u256 = s0 - old_term + new_term
+        return m0 + wad_mul_down(b, ln_wad(s1))
+    }
+    var after = q
+    after[i] = new_qi
+    lmsr_cost_n(after, n, b)
+}
+
 /// Collateral to buy `amount` shares of outcome `i`, rounded in the maker's
-/// favour (computed cost difference plus cost_err_n).
+/// favour (computed cost difference plus cost_err_n). Shares exp terms of
+/// untouched outcomes with the pre-trade cost when the book max is unchanged.
 pub fn lmsr_buy_cost_n<const N: usize>(
     _ q: [u256; N],
     _ n: usize,
@@ -217,14 +242,15 @@ pub fn lmsr_buy_cost_n<const N: usize>(
     _ amount: u256,
 ) -> u256 {
     assert!(i < n)
-    var after = q
-    after[i] = q[i] + amount
-    sat_sub(lmsr_cost_n(after, n, b), lmsr_cost_n(q, n, b)) + cost_err_n(b, n)
+    let (m0, s0) = sum_exp_n(q, n, b)
+    let c0: u256 = m0 + wad_mul_down(b, ln_wad(s0))
+    let c1: u256 = cost_after_n(q, n, b, i, q[i] + amount, m0, s0)
+    sat_sub(c1, c0) + cost_err_n(b, n)
 }
 
 /// Collateral paid for selling `amount` shares of outcome `i` back, rounded in
 /// the maker's favour (computed difference minus cost_err_n, floored at 0).
-/// Reverts if amount > q[i].
+/// Reverts if amount > q[i]. Shares untouched exp terms when the max is unchanged.
 pub fn lmsr_sell_payout_n<const N: usize>(
     _ q: [u256; N],
     _ n: usize,
@@ -234,12 +260,10 @@ pub fn lmsr_sell_payout_n<const N: usize>(
 ) -> u256 {
     assert!(i < n)
     assert!(amount <= q[i])
-    var after = q
-    after[i] = q[i] - amount
-    sat_sub(
-        sat_sub(lmsr_cost_n(q, n, b), lmsr_cost_n(after, n, b)),
-        cost_err_n(b, n),
-    )
+    let (m0, s0) = sum_exp_n(q, n, b)
+    let c0: u256 = m0 + wad_mul_down(b, ln_wad(s0))
+    let c1: u256 = cost_after_n(q, n, b, i, q[i] - amount, m0, s0)
+    sat_sub(sat_sub(c0, c1), cost_err_n(b, n))
 }
 
 /// Subsidy the market creator must lock so the maker is always solvent:
